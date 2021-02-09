@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.1.0
+          http://maven.apache.org/xsd/settings-1.1.0.xsd"
+          xmlns="http://maven.apache.org/SETTINGS/1.1.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+    <servers>
+        <server>
+            <id>avrios-releases</id>
+            <username>aws</username>
+            <password>${env.CODEARTIFACT_TOKEN}</password>
+        </server>
+        <server>
+            <id>avrios-snapshots</id>
+            <username>aws</username>
+            <password>${env.CODEARTIFACT_TOKEN}</password>
+        </server>
+    </servers>
+
+    <profiles>
+        <profile>
+            <id>aws</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+
+            <repositories>
+                <repository>
+                    <id>avrios-releases</id>
+                    <snapshots><enabled>false</enabled></snapshots>
+                    <url>https://avrios-821747761766.d.codeartifact.eu-central-1.amazonaws.com/maven/avrios-release/</url>
+                </repository>
+
+                <repository>
+                    <id>avrios-snapshots</id>
+                    <snapshots><enabled>true</enabled></snapshots>
+                    <url>https://avrios-821747761766.d.codeartifact.eu-central-1.amazonaws.com/maven/avrios-snapshot/</url>
+                </repository>
+            </repositories>
+        </profile>
+    </profiles>
+
+    <activeProfiles>
+        <activeProfile>aws</activeProfile>
+    </activeProfiles>
+
+</settings>

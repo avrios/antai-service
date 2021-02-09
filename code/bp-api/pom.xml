@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.avrios.blueprint</groupId>
+        <artifactId>code</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>bp-api</artifactId>
+
+    <dependencies>
+        <!-- Internal dependencies -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-tomcat</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- Undertow.io: Embedded Application Server -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-undertow</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.ulisesbocchio</groupId>
+            <artifactId>jasypt-spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- ******************** -->
+        <!-- Testing dependencies -->
+        <!-- ******************** -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <!-- final name of the repackaged jar file: <finalName>.jar -->
+        <!-- https://docs.spring.io/spring-boot/docs/current/maven-plugin/reference/html/#repackage-example-custom-name -->
+        <finalName>${avr.service.name}</finalName>
+
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>com.avrios.blueprint.BlueprintServiceApplication</mainClass>
+                    <commandlineArgs>-p ${exec.config.port} -server -Xms750m -Xmx750m -XX:+HeapDumpOnOutOfMemoryError
+                    </commandlineArgs>
+                    <systemProperties>
+                        <systemProperty>
+                            <key>com.avrios.service.name</key>
+                            <value>${avr.service.name}</value>
+                        </systemProperty>
+                        <systemProperty>
+                            <key>spring.profiles.active</key>
+                            <value>${exec.config.stage}</value>
+                        </systemProperty>
+                        <systemProperty>
+                            <key>log4j.configurationFile</key>
+                            <value>log4j2-dev.xml</value>
+                        </systemProperty>
+                        <systemProperty>
+                            <key>jasypt.encryptor.password</key>
+                            <value>secret</value>
+                        </systemProperty>
+                    </systemProperties>
+                </configuration>
+            </plugin>
+
+            <!-- share the application.properties file as a build artifact -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-config-template</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>attach-artifact</goal>
+                        </goals>
+                        <configuration>
+                            <artifacts>
+                                <artifact>
+                                    <file>${project.basedir}/src/main/resources/application.properties</file>
+                                    <type>properties</type>
+                                    <classifier>config-template</classifier>
+                                </artifact>
+                            </artifacts>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

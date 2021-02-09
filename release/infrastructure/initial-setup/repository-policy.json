@@ -1,0 +1,17 @@
+{
+  "Version": "2008-10-17",
+  "Statement": [
+    {
+      "Sid": "cross-account-access",
+      "Effect": "ALLOW",
+      "Principal": {
+        "AWS": [
+          "arn:aws:iam::324932872368:root"
+        ]
+      },
+      "Action": [
+        "ecr:*"
+      ]
+    }
+  ]
+}

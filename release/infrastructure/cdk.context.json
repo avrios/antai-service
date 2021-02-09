@@ -1,0 +1,66 @@
+{
+  "assume-role-credentials:writeIamRoleName": "cdk-full-write-access",
+  "assume-role-credentials:readIamRoleName": "cdk-full-read-access",
+  "vpc-provider:account=821747761766:filter.vpc-id=vpc-61c2f40a:region=eu-central-1:returnAsymmetricSubnets=true": {
+    "vpcId": "vpc-61c2f40a",
+    "vpcCidrBlock": "172.31.0.0/16",
+    "availabilityZones": [],
+    "subnetGroups": [
+      {
+        "name": "Public",
+        "type": "Public",
+        "subnets": [
+          {
+            "subnetId": "subnet-626f7609",
+            "cidr": "172.31.16.0/20",
+            "availabilityZone": "eu-central-1a",
+            "routeTableId": "rtb-dbe14ab1"
+          },
+          {
+            "subnetId": "subnet-4d7a2e30",
+            "cidr": "172.31.32.0/20",
+            "availabilityZone": "eu-central-1b",
+            "routeTableId": "rtb-dbe14ab1"
+          },
+          {
+            "subnetId": "subnet-e25d06af",
+            "cidr": "172.31.0.0/20",
+            "availabilityZone": "eu-central-1c",
+            "routeTableId": "rtb-dbe14ab1"
+          }
+        ]
+      }
+    ]
+  },
+  "vpc-provider:account=324932872368:filter.vpc-id=vpc-cd4fa3a4:region=eu-central-1:returnAsymmetricSubnets=true": {
+    "vpcId": "vpc-cd4fa3a4",
+    "vpcCidrBlock": "172.31.0.0/16",
+    "availabilityZones": [],
+    "subnetGroups": [
+      {
+        "name": "Public",
+        "type": "Public",
+        "subnets": [
+          {
+            "subnetId": "subnet-bb46add2",
+            "cidr": "172.31.16.0/20",
+            "availabilityZone": "eu-central-1a",
+            "routeTableId": "rtb-90e20df9"
+          },
+          {
+            "subnetId": "subnet-7bd5df03",
+            "cidr": "172.31.0.0/20",
+            "availabilityZone": "eu-central-1b",
+            "routeTableId": "rtb-90e20df9"
+          },
+          {
+            "subnetId": "subnet-74577a3e",
+            "cidr": "172.31.32.0/20",
+            "availabilityZone": "eu-central-1c",
+            "routeTableId": "rtb-90e20df9"
+          }
+        ]
+      }
+    ]
+  }
+}

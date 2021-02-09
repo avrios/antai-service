@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/code/bp-api/bp-api.iml" filepath="$PROJECT_DIR$/code/bp-api/bp-api.iml" />
+      <module fileurl="file://$PROJECT_DIR$/code/code.iml" filepath="$PROJECT_DIR$/code/code.iml" />
+      <module fileurl="file://$PROJECT_DIR$/release/config/config.iml" filepath="$PROJECT_DIR$/release/config/config.iml" />
+      <module fileurl="file://$PROJECT_DIR$/release/docker/docker.iml" filepath="$PROJECT_DIR$/release/docker/docker.iml" />
+      <module fileurl="file://$PROJECT_DIR$/release/release.iml" filepath="$PROJECT_DIR$/release/release.iml" />
+      <module fileurl="file://$PROJECT_DIR$/root.iml" filepath="$PROJECT_DIR$/root.iml" />
+    </modules>
+  </component>
+</project>

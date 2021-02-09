@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="bp-api" />
+        <module name="docker" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="bp-api" target="11" />
+      <module name="code" target="11" />
+      <module name="config" target="11" />
+      <module name="docker" target="11" />
+      <module name="ms-api" target="11" />
+      <module name="ms-client" target="11" />
+      <module name="ms-domain" target="11" />
+      <module name="ms-persistence" target="11" />
+      <module name="ms-service" target="11" />
+      <module name="release" target="11" />
+      <module name="root" target="11" />
+    </bytecodeTargetLevel>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="bp-api" options="-parameters" />
+      <module name="docker" options="-parameters" />
+      <module name="ms-api" options="-parameters" />
+      <module name="ms-client" options="-parameters" />
+      <module name="ms-domain" options="-parameters" />
+      <module name="ms-persistence" options="-parameters" />
+      <module name="ms-service" options="-parameters" />
+    </option>
+  </component>
+</project>

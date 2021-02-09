@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>docker</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>docker-build</packaging>
+    <name>Blueprint Service - Release - Docker</name>
+
+    <parent>
+        <groupId>com.avrios.blueprint</groupId>
+        <artifactId>release</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <properties>
+        <docker.endpoint.port>${exec.config.port}</docker.endpoint.port>
+        <docker.jar.name>${avr.service.name}.jar</docker.jar.name>
+
+        <container.work.dir>/var/opt/${avr.service.name}</container.work.dir>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.avrios.blueprint</groupId>
+            <artifactId>bp-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.avrios.blueprint</groupId>
+            <artifactId>config</artifactId>
+            <version>${project.version}</version>
+            <type>zip</type>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>io.fabric8</groupId>
+                <artifactId>docker-maven-plugin</artifactId>
+                <extensions>true</extensions>
+                <configuration>
+                    <registry>821747761766.dkr.ecr.eu-central-1.amazonaws.com</registry>
+                    <images>
+                        <image>
+                            <name>${avr.service.name}:${project.version}</name>
+                            <build>
+                                <dockerFileDir>${project.basedir}/src/main/docker</dockerFileDir>
+                                <assembly>
+                                    <inline>
+                                        <dependencySets>
+                                            <dependencySet>
+                                                <includes>
+                                                    <include>com.avrios.blueprint:bp-api</include>
+                                                </includes>
+                                                <outputDirectory>.</outputDirectory>
+                                                <outputFileNameMapping>${docker.jar.name}</outputFileNameMapping>
+                                                <useProjectArtifact>false</useProjectArtifact>
+                                            </dependencySet>
+                                            <dependencySet>
+                                                <includes>
+                                                    <include>com.avrios.blueprint:config:zip</include>
+                                                </includes>
+                                                <unpack>true</unpack>
+                                                <outputDirectory>.</outputDirectory>
+                                                <useProjectArtifact>false</useProjectArtifact>
+                                            </dependencySet>
+                                        </dependencySets>
+                                        <fileSets>
+                                            <fileSet>
+                                                <outputDirectory>.</outputDirectory>
+                                                <directory>${project.basedir}/src/main/docker</directory>
+                                                <includes>
+                                                    <include>**/*</include>
+                                                </includes>
+                                                <excludes>
+                                                    <exclude>Dockerfile</exclude>
+                                                </excludes>
+                                                <filtered>true</filtered>
+                                            </fileSet>
+                                        </fileSets>
+                                    </inline>
+                                </assembly>
+                            </build>
+
+                            <run>
+                                <log>
+                                    <enabled>true</enabled>
+                                </log>
+                                <ports>
+                                    <port>docker.endpoint.port:${container.expose.port}</port>
+                                </ports>
+                                <wait>
+                                    <http>
+                                        <url>http://localhost:${docker.endpoint.port}${container.healthcheck.path}</url>
+                                    </http>
+                                    <time>${application.start-period}</time>
+                                </wait>
+                                <env>
+                                    <STAGE>dev</STAGE>
+                                    <XMS>500m</XMS>
+                                    <XMX>500m</XMX>
+                                    <APP_NAME>${avr.service.name}</APP_NAME>
+                                    <ENCRYPTOR_PASSWORD>secret</ENCRYPTOR_PASSWORD>
+                                </env>
+                            </run>
+                        </image>
+                    </images>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

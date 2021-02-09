@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>config</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>Blueprint Service - Release - Config</name>
+
+    <parent>
+        <groupId>com.avrios.blueprint</groupId>
+        <artifactId>release</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <properties>
+        <config-env.dir>${project.basedir}/src/main/env</config-env.dir>
+        <config-template.dir>${project.build.directory}/config-template</config-template.dir>
+        <config-template.name>template.properties</config-template.name>
+        <config-output.dir>${project.build.directory}/config</config-output.dir>
+
+        <!-- plugin versions -->
+        <maven-antrun-plugin.version>3.0.0</maven-antrun-plugin.version>
+    </properties>
+
+    <build>
+        <plugins>
+            <!-- get a hold of the configuration template for further processing -->
+            <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-config-template</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <artifactItems>
+                        <artifactItem>
+                            <groupId>com.avrios.blueprint</groupId>
+                            <artifactId>bp-api</artifactId>
+                            <classifier>config-template</classifier>
+                            <type>properties</type>
+                            <version>${project.version}</version>
+                            <destFileName>${config-template.name}</destFileName>
+                        </artifactItem>
+                    </artifactItems>
+                    <outputDirectory>${config-template.dir}</outputDirectory>
+                </configuration>
+            </plugin>
+
+            <!-- generate a configuration per environment using the template -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <configuration>
+                    <resources>
+                        <resource>
+                            <filtering>true</filtering>
+                            <directory>${config-template.dir}</directory>
+                        </resource>
+                    </resources>
+                </configuration>
+
+                <executions>
+                    <execution>
+                        <id>generate-dev-config</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${config-output.dir}-dev</outputDirectory>
+                            <filters>
+                                <filter>${config-env.dir}/dev.properties</filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+
+                    <execution>
+                        <id>generate-staging-config</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${config-output.dir}-staging</outputDirectory>
+                            <filters>
+                                <filter>${config-env.dir}/staging.properties</filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+
+                    <execution>
+                        <id>generate-test-config</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${config-output.dir}-test</outputDirectory>
+                            <filters>
+                                <filter>${config-env.dir}/test.properties</filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+
+                    <execution>
+                        <id>generate-prod-config</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${config-output.dir}-prod</outputDirectory>
+                            <filters>
+                                <filter>${config-env.dir}/prod.properties</filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- package a zip file containing the properties -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>package-config</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <appendAssemblyId>false</appendAssemblyId>
+                            <descriptors>
+                                <descriptor>${project.basedir}/src/main/assembly/zip.xml</descriptor>
+                            </descriptors>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Unpack the configuration package to have it available locally, in order to run the IDE against and env-specific config -->
+            <!-- Additionally validates the environment-specific configuration files, making sure that no undefined variables exist -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>${maven-antrun-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>prepare</id>
+                        <phase>package</phase>
+                        <configuration>
+                            <target>
+                                <unzip dest="${project.build.directory}/unpacked/">
+                                    <fileset dir="${project.build.directory}">
+                                        <filename regex="^config.*.zip$"/>
+                                    </fileset>
+                                </unzip>
+                                <exec executable="${project.build.scriptSourceDirectory}/validate.sh" failonerror="true">
+                                    <arg value="${project.build.directory}/unpacked/*"/>
+                                </exec>
+                            </target>
+
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>release</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>Blueprint Service - Release</name>
+
+    <parent>
+        <groupId>com.avrios.blueprint</groupId>
+        <artifactId>root</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <properties>
+        <!-- time the application needs for startup, before any health checks are performed -->
+        <application.start-period>80000</application.start-period>
+
+        <!-- exposed main container port (usually http server port) -->
+        <container.expose.port>8080</container.expose.port>
+
+        <!-- health check path -->
+        <container.healthcheck.path>/blueprint/healthCheck</container.healthcheck.path>
+
+        <!-- plugin versions -->
+        <docker-maven-plugin.version>0.34.1</docker-maven-plugin.version>
+    </properties>
+
+    <modules>
+        <module>config</module>
+        <module>docker</module>
+    </modules>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>io.fabric8</groupId>
+                    <artifactId>docker-maven-plugin</artifactId>
+                    <version>${docker-maven-plugin.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>
