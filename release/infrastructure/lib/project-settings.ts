@@ -3,16 +3,6 @@
 import { ComputeType } from '@aws-cdk/aws-codebuild';
 
 /**
- * Short-hand name of the service, mostly used for setting up the ALB routing rules.
- */
-export const INTERNAL_NAME_SHORT               = 'blueprint';
-
-/**
- * Internal service name used through out the project. It should be <SERVICE>-service.
- */
-export const INTERNAL_NAME                     = `${INTERNAL_NAME_SHORT}-service`;
-
-/**
  * Minimal amount of memory for the service in MB.
  * Should be less than TASK_MEMORY_LIMIT_MIB.
  */
@@ -96,7 +86,7 @@ export const CODE_BUILD_COMPUTE_TYPE           = ComputeType.SMALL;
  * You can define who should receive approval mails here. You can also manually
  * subscribe to the SNS topic later.
  */
-export const APPROVAL_NOTIFY_EMAILS            = [ 'roger@avrios.com', 'saifeddine.romdhane@avrios.com' ];
+export const APPROVAL_NOTIFY_EMAILS            = [];
 
 /////////////////
 // ATTENTION:
@@ -104,23 +94,9 @@ export const APPROVAL_NOTIFY_EMAILS            = [ 'roger@avrios.com', 'saifeddi
 /////////////////
 
 /**
- * Set to false if the service shouldn't be deployed to test. Currently
- * all services are on test, staging and prod. In the future we will
- * probably consolidate this and get rid of test.avrios.io.
- */
-export const DEPLOY_TO_TEST                    = true;
-
-/**
- * Repository name without github and owner prefix:
- * https://github.com/Avrios/blueprint-service => 'blueprint-service'.
- * This is usually the same as INTERNAL_NAME.
- */
-export const REPO_NAME                         = INTERNAL_NAME;
-
-/**
  * Name of the main branch. The infrastructure stack creates a deployment pipeline for this branch.
  */
-export const MAIN_BRANCH                       = 'master';
+export const MAIN_BRANCH                       = 'main';
 
 /**
  * Location of the github token in the AWS Secret Manager.

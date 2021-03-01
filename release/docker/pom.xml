@@ -45,7 +45,7 @@
                     <registry>821747761766.dkr.ecr.eu-central-1.amazonaws.com</registry>
                     <images>
                         <image>
-                            <name>${avr.service.name}:${project.version}</name>
+                            <name>${avr.service.name.short}:${project.version}</name>
                             <build>
                                 <dockerFileDir>${project.basedir}/src/main/docker</dockerFileDir>
                                 <assembly>

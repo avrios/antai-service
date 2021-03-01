@@ -1,23 +1,19 @@
 #!/usr/bin/env node
 
 import * as cdk from '@aws-cdk/core';
+import * as apiGw from '@aws-cdk/aws-apigateway';
+import * as iam from '@aws-cdk/aws-iam';
 import * as ecs from '@aws-cdk/aws-ecs';
+import * as ecr from '@aws-cdk/aws-ecr';
+import * as ecsPatterns from '@aws-cdk/aws-ecs-patterns';
 import * as ec2 from '@aws-cdk/aws-ec2';
 import * as elbv2 from '@aws-cdk/aws-elasticloadbalancingv2';
 import * as logs from '@aws-cdk/aws-logs';
-import * as apiGw from '@aws-cdk/aws-apigateway';
-import {
-    ApplicationLoadBalancedTaskImageOptions,
-    ApplicationLoadBalancedFargateService
-} from '@aws-cdk/aws-ecs-patterns';
-import { Repository } from '@aws-cdk/aws-ecr';
-import { StringParameter } from '@aws-cdk/aws-ssm';
-import { ManagedPolicy } from '@aws-cdk/aws-iam';
+import * as ssm from '@aws-cdk/aws-ssm';
+import * as uuid from 'uuid';
 
 import { Stage } from 'avr-cdk-utils';
 import {
-    INTERNAL_NAME,
-    INTERNAL_NAME_SHORT,
     CONTAINER_PORT,
     TASK_CPU,
     TASK_MEMORY_LIMIT_MIB,
@@ -31,43 +27,80 @@ import {
     LOGS_AGENT_HOST
 } from './project-settings'
 
-export interface StageAwareStackProps extends cdk.StackProps {
-    stage: Stage;
+class FargateStackNaming {
+    readonly shortName: string;
+    readonly serviceName: string;
+    readonly stageAwareServiceName: string;
+
+    constructor(shortName: string, stage: Stage) {
+        this.shortName = shortName;
+        this.serviceName = `${shortName}-service`;
+        this.stageAwareServiceName = `${stage.identifier}-${this.shortName}`;
+    }
 }
 
 export class FargateStack extends cdk.Stack {
+    public readonly image: ecs.TagParameterContainerImage;
+    public readonly loadBalancedFargateService: ecsPatterns.ApplicationLoadBalancedFargateService;
+
     private readonly stage: Stage;
-    public readonly fargateService: ecs.FargateService;
+    private readonly stackNaming: FargateStackNaming;
 
-    constructor(scope: cdk.Construct, id: string, props: StageAwareStackProps) {
-        super(scope, id, props);
+    constructor(scope: cdk.Construct, serviceShortName: string, stage: Stage, repository: ecr.Repository) {
+        let stackNaming = new FargateStackNaming(serviceShortName, stage);
+        super(scope, stackNaming.stageAwareServiceName, { env: stage.env });
 
-        this.stage = props.stage;
+        this.stackNaming = stackNaming;
+        this.stage = stage;
 
-        const loadBalancedFargateService = this.createFargateService();
-        this.fargateService = loadBalancedFargateService.service;
+        this.image = new ecs.TagParameterContainerImage(repository);
+        this.loadBalancedFargateService = this.createFargateService();
 
-        this.setupSecurityGroupHealthCheck(loadBalancedFargateService.targetGroup);
-        this.setupTargetGroupAttributes(loadBalancedFargateService.targetGroup);
-        this.setupRoutingRule(loadBalancedFargateService.targetGroup);
-        this.setupExecutionRole(loadBalancedFargateService);
+        this.configureTargetGroup();
+        this.setupRoutingRule();
 
         this.setupApiGwRouting();
+
+        cdk.Tags.of(this).add('env', this.stage.identifier);
     }
 
-    private createFargateService(): ApplicationLoadBalancedFargateService {
-        const vpc = ec2.Vpc.fromLookup(this, 'VPC', { vpcId: this.stage.vpcId });
+    private createFargateService(): ecsPatterns.ApplicationLoadBalancedFargateService {
+        const cluster = this.fetchFargateCluster();
+        const taskDefinition = this.createTaskDefinition();
 
-        const cluster = this.fetchCluster(vpc);
+        const datadogApiKey = ssm.StringParameter.valueForStringParameter(this, `/${this.stage.identifier}/datadog/apikey`);
 
-        // create a load-balanced Fargate service and make it private
-        const fargateServiceId = `${INTERNAL_NAME}-${this.stage.identifier}`;
-        const fargateService = new ApplicationLoadBalancedFargateService(this, fargateServiceId, {
-            serviceName: `${INTERNAL_NAME}`,
+        const password = ssm.StringParameter.valueForStringParameter(this, `/${this.stage.identifier}/encryptor.password`);
+        const containerDefinition = taskDefinition.addContainer(this.stackNaming.serviceName, {
+            image: this.image,
+            logging: this.setupFirelensLogs(datadogApiKey),
+            environment: {
+                'APP_NAME': this.stackNaming.serviceName,
+                'ENCRYPTOR_PASSWORD': password,
+                'STAGE': this.stage.identifier,
+                'XMS': `${SERVICE_XMS}m`,
+                'XMX': `${SERVICE_XMX}m`,
+                'DD_ENV': this.stage.identifier,
+                'DD_JMXFETCH_ENABLED': 'true',
+                'DD_LOGS_INJECTION': 'true',
+                'DD_PROFILING_ENABLED': 'true',
+                'DD_SERVICE_MAPPING': `${this.stackNaming.shortName}:${this.stackNaming.serviceName}`,
+                'DD_TRACE_ANALYTICS_ENABLED': 'true'
+            }
+        });
+
+        containerDefinition.addPortMappings({
+            containerPort: CONTAINER_PORT
+        });
+
+        this.setupMonitoring(taskDefinition, datadogApiKey);
+
+        const fargateService = new ecsPatterns.ApplicationLoadBalancedFargateService(this, this.stackNaming.stageAwareServiceName, {
+            serviceName: this.stackNaming.serviceName,
             cluster,
             cpu: TASK_CPU,
             memoryLimitMiB: TASK_MEMORY_LIMIT_MIB,
-            taskImageOptions: this.getTaskImageOptions(),
+            taskDefinition,
             healthCheckGracePeriod: cdk.Duration.seconds(TASK_HEALTH_CHECK_GRACE_PERIOD),
             desiredCount: 1,
             minHealthyPercent: 100,
@@ -77,11 +110,9 @@ export class FargateStack extends cdk.Stack {
             /** By default cdk needs to create a listener (¯\_(ツ)_/¯), we set this port because by default 80 is used
              * which clashes with the application load balancer listener.
              */
-            listenerPort: 1235,
-            loadBalancer: this.fetchLoadBalancer(vpc)
+            listenerPort: 1245,
+            loadBalancer: this.fetchLoadBalancer(cluster.vpc)
         });
-
-        this.setupLogging(fargateService.taskDefinition);
 
         // allow applications in ECS cluster accessing our RDS instance
         const groupId = 'rds-security-group';
@@ -93,23 +124,35 @@ export class FargateStack extends cdk.Stack {
         return fargateService;
     }
 
-    private setupLogging(taskDefinition: ecs.FargateTaskDefinition): void {
-        this.setupApmAgent(taskDefinition);
+    private createTaskDefinition(): ecs.FargateTaskDefinition {
+        return new ecs.FargateTaskDefinition(this, `taskdef-${this.stage.identifier}`, {
+            executionRole: new iam.Role(this, `taskexec-${this.stage.identifier}`, {
+                roleName: cdk.PhysicalName.GENERATE_IF_NEEDED,
+                assumedBy: new iam.CompositePrincipal(
+                    new iam.ServicePrincipal('ecs.amazonaws.com'),
+                    new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
+                ),
+            })
+        });
+    }
+
+    private setupMonitoring(taskDefinition: ecs.FargateTaskDefinition, datadogApiKey: string): void {
+        this.setupApmAgent(taskDefinition, datadogApiKey);
         this.setupLogAgent(taskDefinition);
     }
 
-    private setupApmAgent(taskDefinition: ecs.FargateTaskDefinition): void {
+    private setupApmAgent(taskDefinition: ecs.FargateTaskDefinition, datadogApiKey: string): void {
         taskDefinition.addContainer('datadog-agent', {
             image: ecs.ContainerImage.fromRegistry(`datadog/agent:latest`),
             cpu: TRACKING_AGENT_TASK_CPU,
             memoryReservationMiB: TRACKING_AGENT_MEMORY_LIMIT_MIB,
             environment: {
-                'DD_API_KEY': this.getLogsAgentApiKey(),
+                'DD_API_KEY': datadogApiKey,
                 'DD_APM_ENABLED': 'true',
                 'DD_DOGSTATSD_NON_LOCAL_TRAFFIC': 'true',
                 'DD_DOGSTATSD_TAGS': `["env:${this.stage.identifier}"]`,
                 'DD_ENV': this.stage.identifier,
-                'DD_SERVICE': INTERNAL_NAME,
+                'DD_SERVICE': this.stackNaming.serviceName,
                 'DD_SITE': 'datadoghq.eu',
                 'ECS_FARGATE': 'true'
             },
@@ -119,12 +162,16 @@ export class FargateStack extends cdk.Stack {
     }
 
     private setupLogAgent(taskDefinition: ecs.FargateTaskDefinition): void {
+        let image = ecs.obtainDefaultFluentBitECRImage(taskDefinition, {
+            logDriver: 'awsfirelens',
+
+        });
         taskDefinition.addFirelensLogRouter('log-router', {
             firelensConfig: {
                 type: ecs.FirelensLogRouterType.FLUENTBIT
             },
             logging: this.setupCloudWatchLogGroup('log-router'),
-            image: ecs.ContainerImage.fromRegistry('906394416424.dkr.ecr.eu-central-1.amazonaws.com/aws-for-fluent-bit:latest'),
+            image,
             essential: true,
             memoryReservationMiB: LOGS_ROUTER_MEMORY_LIMIT_MIB,
             cpu: LOGS_ROUTER_TASK_CPU
@@ -135,17 +182,15 @@ export class FargateStack extends cdk.Stack {
         return ecs.LogDriver.awsLogs({
             streamPrefix: `${logGroupName}-${this.stage.identifier}`,
             logGroup: new logs.LogGroup(this, `${logGroupName}-log-group`, {
-                logGroupName: `${logGroupName}-${INTERNAL_NAME}-${this.stage.identifier}`,
-                retention: logs.RetentionDays.FIVE_DAYS
+                logGroupName: `${logGroupName}-${this.stackNaming.stageAwareServiceName}`,
+                retention: logs.RetentionDays.FIVE_DAYS,
+                removalPolicy: cdk.RemovalPolicy.DESTROY
             })
         });
     }
 
-    private getLogsAgentApiKey(): string {
-        return StringParameter.valueForStringParameter(this, `/${this.stage.identifier}/datadog/apikey`);
-    }
-
-    private fetchCluster(vpc: ec2.IVpc): ecs.ICluster {
+    private fetchFargateCluster(): ecs.ICluster {
+        const vpc = ec2.Vpc.fromLookup(this, 'VPC', { vpcId: this.stage.vpcId });
         return ecs.Cluster.fromClusterAttributes(this, `service-cluster-${this.stage.identifier}`, {
             clusterName: this.stage.getServicesClusterName(),
             clusterArn: this.stage.getServicesClusterArn(),
@@ -154,37 +199,13 @@ export class FargateStack extends cdk.Stack {
         })
     }
 
-    private getTaskImageOptions(): ApplicationLoadBalancedTaskImageOptions {
-        const password = StringParameter.valueForStringParameter(this, `/${this.stage.identifier}/encryptor.password`);
-        const ecrRepoArn = `arn:aws:ecr:${Stage.TEST.env.region}:${Stage.TEST.env.account}:repository/${INTERNAL_NAME}`
-        return {
-            containerName: INTERNAL_NAME,
-            image: ecs.ContainerImage.fromEcrRepository(Repository.fromRepositoryArn(this, 'ecr-repo', ecrRepoArn)),
-            containerPort: CONTAINER_PORT,
-            logDriver: this.setupFirelensLogs(),
-            environment: {
-                'APP_NAME': INTERNAL_NAME,
-                'ENCRYPTOR_PASSWORD': password,
-                'STAGE': this.stage.identifier,
-                'XMS': `${SERVICE_XMS}m`,
-                'XMX': `${SERVICE_XMX}m`,
-                'DD_ENV': this.stage.identifier,
-                'DD_JMXFETCH_ENABLED': 'true',
-                'DD_LOGS_INJECTION': 'true',
-                'DD_PROFILING_ENABLED': 'true',
-                'DD_SERVICE_MAPPING': `${INTERNAL_NAME_SHORT}:${INTERNAL_NAME}`,
-                'DD_TRACE_ANALYTICS_ENABLED': 'true'
-            }
-        };
-    }
-
-    private setupFirelensLogs(): ecs.LogDriver {
+    private setupFirelensLogs(datadogApiKey: string): ecs.LogDriver {
         return new ecs.FireLensLogDriver({
             options: {
                 'enable-ecs-log-metadata': 'true',
-                'apiKey': this.getLogsAgentApiKey(),
+                'apiKey': datadogApiKey,
                 'provider': 'ecs',
-                'dd_service': INTERNAL_NAME,
+                'dd_service': this.stackNaming.serviceName,
                 'Host': LOGS_AGENT_HOST,
                 'TLS': 'on',
                 'dd_source': 'java',
@@ -204,30 +225,28 @@ export class FargateStack extends cdk.Stack {
         });
     }
 
-    private setupSecurityGroupHealthCheck(targetGroup: elbv2.ApplicationTargetGroup): void {
-        targetGroup.configureHealthCheck({
-            path: `/${INTERNAL_NAME_SHORT}/healthCheck`,
+    private configureTargetGroup(): void {
+        this.loadBalancedFargateService.targetGroup.configureHealthCheck({
+            path: `/${this.stackNaming.shortName}/healthCheck`,
             port: `${CONTAINER_PORT}`,
             healthyThresholdCount: 2,
             unhealthyThresholdCount: 8,
             timeout: cdk.Duration.seconds(2),
             interval: cdk.Duration.seconds(20)
+
         });
-    }
-
-    private setupTargetGroupAttributes(targetGroup: elbv2.ApplicationTargetGroup): void {
         // once a new target is healthy, make the deregistration quicker.
-        targetGroup.setAttribute('deregistration_delay.timeout_seconds', '30')
+        this.loadBalancedFargateService.targetGroup.setAttribute('deregistration_delay.timeout_seconds', '30');
     }
 
-    private setupRoutingRule(targetGroup: elbv2.ApplicationTargetGroup): void {
+    private setupRoutingRule(): void {
         const httpListener = this.fetchHttpListener();
 
-        new elbv2.ApplicationListenerRule(this, `${INTERNAL_NAME}-forward-rule-${this.stage.identifier}`, {
+        new elbv2.ApplicationListenerRule(this, `${this.stackNaming.serviceName}-forward-rule-${this.stage.identifier}`, {
             listener: httpListener,
-            priority: 2,
-            action: elbv2.ListenerAction.forward([targetGroup]),
-            conditions: [elbv2.ListenerCondition.pathPatterns([`/${INTERNAL_NAME_SHORT}/*`])]
+            priority: 10,
+            action: elbv2.ListenerAction.forward([this.loadBalancedFargateService.targetGroup]),
+            conditions: [elbv2.ListenerCondition.pathPatterns([`/${this.stackNaming.shortName}/*`])]
         });
     }
 
@@ -239,33 +258,28 @@ export class FargateStack extends cdk.Stack {
         })
     }
 
-    private setupExecutionRole(fargateService: ApplicationLoadBalancedFargateService): void {
-        fargateService.taskDefinition.executionRole?.addManagedPolicy(
-            ManagedPolicy.fromAwsManagedPolicyName('AmazonEC2ContainerRegistryReadOnly'));
-    }
-
-
     private setupApiGwRouting(): void {
-        const rootResource = this.getApiGwRootResourceId();
+        const api = this.getApiGwRootResource();
 
-        // ANY /models-service/{proxy}
-        this.addProxyResource(rootResource, INTERNAL_NAME_SHORT);
+        this.addProxyResource(api.root);
+
+        const description = `Deployment triggered by: ${this.stackNaming.shortName}`;
+        const deployment = new apiGw.Deployment(this, `gateway-deployment-${uuid.v4()}`, { api, description });
+
+        // @ts-ignore Setting this property allows us to release against an existing stage despite cdk not properly supporting it.
+        deployment.resource.stageName = this.stage.identifier;
     }
 
-    private getApiGwRootResourceId(): apiGw.IResource {
-        const apiGateway = apiGw.RestApi.fromRestApiAttributes(this, `Avrios API: ${this.stage.identifier}`, {
+    private getApiGwRootResource(): apiGw.IRestApi {
+        return apiGw.RestApi.fromRestApiAttributes(this, `Avrios API: ${this.stage.identifier}`, {
             restApiId: this.stage.getRestApiId(),
             rootResourceId: this.stage.getRestApiRootResourceId()
         });
-
-        return apiGateway.root;
     }
 
-    private addProxyResource(rootResource: apiGw.IResource, contextName: string): void {
-        // /models/
-        const serviceResource = rootResource.addResource(contextName);
+    private addProxyResource(rootResource: apiGw.IResource): void {
+        const serviceResource = rootResource.addResource(this.stackNaming.shortName);
 
-        // /models/{proxy+}
         const proxyResource = serviceResource.addResource('{proxy+}', {
             defaultCorsPreflightOptions: {
                 allowCredentials: true,
@@ -279,7 +293,7 @@ export class FargateStack extends cdk.Stack {
 
         const integration = new apiGw.Integration({
             type: apiGw.IntegrationType.HTTP_PROXY,
-            uri: this.getAlbUrl(contextName),
+            uri: this.getAlbUrl(this.stackNaming.shortName),
             integrationHttpMethod: 'ANY',
             options: {
                 cacheKeyParameters: [ 'method.request.path.proxy' ],

@@ -4,8 +4,10 @@ phases:
   install:
     runtime-versions:
       java: corretto11
+      nodejs: 10
   pre_build:
     commands:
+      - aws codeartifact login --tool npm --repository avrios-npm --domain avrios --domain-owner 821747761766
       - export CODEARTIFACT_TOKEN=`aws codeartifact get-authorization-token --domain avrios --domain-owner 821747761766 --query authorizationToken --output text`
       - aws ecr get-login-password | docker login --username AWS --password-stdin ${REPOSITORY_URI}
       - RELEASE_VERSION=${RELEASE_VERSION_PREFIX}${CODEBUILD_BUILD_NUMBER}${RELEASE_VERSION_POSTFIX}
@@ -13,11 +15,13 @@ phases:
     commands:
       - mvn versions:set versions:update-child-modules -DnewVersion=${RELEASE_VERSION} -s .build/codeartifact.xml
       - mvn clean deploy -s .build/codeartifact.xml
-      - printf "[{\"name\":\"${CONTAINER_NAME}\",\"imageUri\":\"${REPOSITORY_URI}:${RELEASE_VERSION}\"}]" > imagedefinitions.json
+      - printf "{\"imageTag\":\"${RELEASE_VERSION}\"}" > imagedefinitions.json
 
 artifacts:
   files:
     - 'imagedefinitions.json'
+    - 'release/infrastructure/cdk.out/*'
+  discard-paths: yes
 
 cache:
   paths:

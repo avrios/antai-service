@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>infrastructure</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>Blueprint Service - Release - Infrastructure</name>
+
+    <parent>
+        <groupId>com.avrios.blueprint</groupId>
+        <artifactId>release</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <properties>
+        <!-- AWS tooling account that holds all build jobs, pipelines, repositories etc. -->
+        <aws.tools-account.profile>avr-dev</aws.tools-account.profile>
+    </properties>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>exec-maven-plugin</artifactId>
+                    <version>${exec-maven-plugin.version}</version>
+                    <configuration>
+                        <!--
+                            By setting these environment variables, we're passing select properties (such as the service
+                            name) to the CDK build.
+                        -->
+                        <environmentVariables>
+                            <INTERNAL_NAME_SHORT>${avr.service.name.short}</INTERNAL_NAME_SHORT>
+                            <GIT_REPOSITORY_NAME>${avr.repo.name}</GIT_REPOSITORY_NAME>
+                        </environmentVariables>
+                        <executable>npm</executable>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>npm-install</id>
+                            <phase>initialize</phase>
+                            <goals>
+                                <goal>exec</goal>
+                            </goals>
+                            <configuration>
+                                <commandlineArgs>install</commandlineArgs>
+                            </configuration>
+                        </execution>
+                        <execution>
+                            <id>npm-build</id>
+                            <phase>generate-resources</phase>
+                            <goals>
+                                <goal>exec</goal>
+                            </goals>
+                            <configuration>
+                                <executable>npm</executable>
+                                <commandlineArgs>run build</commandlineArgs>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>generate-cfn-stack</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>cdk-synth</id>
+                                <phase>compile</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <commandlineArgs>run cdk synth</commandlineArgs>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>diff-all-stacks</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>cdk-diff</id>
+                                <phase>compile</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>npx</executable>
+                                    <commandlineArgs>cdk diff --profile ${aws.tools-account.profile}</commandlineArgs>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>deploy-cicd-stack</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>cdk-deploy</id>
+                                <phase>compile</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>npx</executable>
+                                    <commandlineArgs>cdk deploy "${avr.service.name.short}-infrastructure" --profile ${aws.tools-account.profile} --require-approval never</commandlineArgs>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>
