@@ -154,10 +154,25 @@ export class FargateStack extends cdk.Stack {
                 'DD_ENV': this.stage.identifier,
                 'DD_SERVICE': this.stackNaming.serviceName,
                 'DD_SITE': 'datadoghq.eu',
+                'DD_VERSION': `${this.retrieveImageTag()}`,
                 'ECS_FARGATE': 'true'
             },
             logging: this.setupCloudWatchLogGroup('datadog-agent'),
             essential: true
+        });
+    }
+
+    private retrieveImageTag() {
+        return cdk.Lazy.string({
+            produce: () => {
+                // @ts-ignore
+                if (this.image.imageTagParameter) {
+                    // @ts-ignore
+                    return this.image.imageTagParameter.valueAsString;
+                } else {
+                    throw new Error('TagParameterContainerImage must be used in a container definition when retrieving tag parameter');
+                }
+            }
         });
     }
 
