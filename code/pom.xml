@@ -17,10 +17,10 @@
 
     <properties>
         <!-- internal dependency versions -->
-        <girders.version>2.28.5</girders.version>
+        <girders.version>21</girders.version>
 
         <!-- plugin versions -->
-        <maven.dependency.plugin.version>3.1.1</maven.dependency.plugin.version>
+        <exec-maven-plugin.version>3.0.0</exec-maven-plugin.version>
     </properties>
 
     <modules>
