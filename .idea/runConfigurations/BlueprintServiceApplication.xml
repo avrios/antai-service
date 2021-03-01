@@ -1,0 +1,11 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="BlueprintService" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+    <module name="bp-api" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="com.avrios.blueprint.BlueprintServiceApplication" />
+    <option name="VM_PARAMETERS" value="-Dcom.avrios.service.name=blueprint-service -Dspring.profiles.active=dev -Djasypt.encryptor.password=secret -Xms500m -Xmx500m -XX:+HeapDumpOnOutOfMemoryError" />
+    <option name="ALTERNATIVE_JRE_PATH" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
