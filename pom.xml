@@ -23,15 +23,17 @@
     </organization>
 
     <scm>
-        <connection>scm:git:ssh://github.com/avrios/blueprint-service.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/avrios/blueprint-service.git</developerConnection>
-        <url>https://github.com/avrios/blueprint-service</url>
+        <connection>scm:git:ssh://github.com/avrios/${avr.repo.name}.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/avrios/${avr.repo.name}.git</developerConnection>
+        <url>https://github.com/avrios/${avr.repo.name}</url>
         <tag>HEAD</tag>
     </scm>
 
     <properties>
-        <!-- the service name, used throughout the maven project -->
-        <avr.service.name>blueprint-service</avr.service.name>
+        <!-- the service short name, used throughout the project -->
+        <avr.service.name.short>blueprint</avr.service.name.short>
+        <avr.service.name>${avr.service.name.short}-service</avr.service.name>
+        <avr.repo.name>${avr.service.name}</avr.repo.name>
 
         <!-- the root package of the new service -->
         <avr.service.rootpackage>com.avrios.blueprint</avr.service.rootpackage>
@@ -41,6 +43,7 @@
         <exec.config.stage>dev</exec.config.stage>
 
         <!-- plugin versions -->
+        <exec-maven-plugin.version>3.0.0</exec-maven-plugin.version>
         <maven-resource-plugin.version>3.2.0</maven-resource-plugin.version>
     </properties>
 

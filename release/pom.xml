@@ -31,6 +31,7 @@
     <modules>
         <module>config</module>
         <module>docker</module>
+        <module>infrastructure</module>
     </modules>
 
     <build>

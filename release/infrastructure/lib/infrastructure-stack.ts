@@ -3,6 +3,7 @@
 import * as cdk from '@aws-cdk/core';
 import * as s3 from '@aws-cdk/aws-s3';
 import * as ecs from '@aws-cdk/aws-ecs';
+import * as ecr from '@aws-cdk/aws-ecr';
 import * as iam from '@aws-cdk/aws-iam';
 import * as sns from '@aws-cdk/aws-sns';
 import * as kms from '@aws-cdk/aws-kms';
@@ -10,46 +11,98 @@ import * as codebuild from '@aws-cdk/aws-codebuild';
 import * as codepipeline from '@aws-cdk/aws-codepipeline';
 import * as actions from '@aws-cdk/aws-codepipeline-actions';
 
+import { FargateStack } from './fargate-stack';
 import { Stage } from 'avr-cdk-utils';
 import {
-    INTERNAL_NAME,
-    REPO_NAME,
     MAIN_BRANCH,
     GITHUB_TOKEN_PATH,
-    DEPLOY_TO_TEST,
     ENCRYPTION_KEY,
     APPROVAL_NOTIFY_EMAILS,
     CODE_BUILD_COMPUTE_TYPE
 } from './project-settings'
 
-export interface InfrastructureStackProps extends cdk.StackProps {
-    fargateService: {
-        [key: string]: ecs.FargateService;
-    }
-}
-
 export class InfrastructureStack extends cdk.Stack {
-    private readonly fargateService: {
-        [key: string]: ecs.FargateService;
-    }
-    private readonly ecrRepositoryUrl: string;
-    private codeBuildCache: codebuild.Cache;
+    private readonly serviceImage: {
+        [key: string]: ecs.TagParameterContainerImage;
+    } = {};
 
-    constructor(scope: cdk.Construct, id: string, props: InfrastructureStackProps) {
-        super(scope, id, props);
+    private readonly internalShortName: string;
+    private readonly gitRepositoryName: string;
+    private readonly ecrRepository: ecr.Repository;
+    private readonly codeBuildCache: codebuild.Cache;
 
-        this.fargateService = props.fargateService;
-        this.ecrRepositoryUrl = `${props.env?.account}.dkr.ecr.${props.env?.region}.amazonaws.com/${INTERNAL_NAME}`;
+    /**
+     * @param scope Parent of this stack, usually an `App` or a `Stage`, but could be any construct
+     * @param internalShortName Short-hand name of the service
+     * @param gitRepositoryName  Repository name without github and owner prefix
+     */
+    constructor(scope: cdk.Construct, internalShortName: string, gitRepositoryName: string) {
+        super(scope, `${internalShortName}-infrastructure`, { env: Stage.TEST.env });
 
-        this.setupCodeBuildCache()
+        this.internalShortName = internalShortName;
+        this.gitRepositoryName = gitRepositoryName;
+
+        this.ecrRepository = this.setupEcrRepository();
+        this.codeBuildCache = this.setupCodeBuildCache()
+
+        this.createStack(scope, Stage.TEST, this.ecrRepository);
+        this.createStack(scope, Stage.STAGING, this.ecrRepository);
+        this.createStack(scope, Stage.PROD, this.ecrRepository);
+
         this.setupCodeBuildForFeatureBranches();
         this.setupCodePipelineForMainBranch();
+
+        cdk.Tags.of(this).add('env', Stage.TEST.identifier);
     }
 
-    private setupCodeBuildCache(): void {
+    private setupEcrRepository(): ecr.Repository {
+        const repositoryName = this.internalShortName;
+        const repository = new ecr.Repository(this, `${this.internalShortName}-ecr`, { repositoryName });
+
+        const cfnRepository = repository.node.defaultChild as ecr.CfnRepository;
+        // CDK - when left on its own - happens to create a repository policy that is invalid. As a workaround, we
+        // therefore have to override the raw CFN template.
+        cfnRepository.repositoryPolicyText = {
+            "Version": "2008-10-17",
+            "Statement": [
+                {
+                    "Sid": "cross-account-access",
+                    "Effect": "ALLOW",
+                    "Principal": {
+                        "AWS": [
+                            "arn:aws:iam::324932872368:root"
+                        ]
+                    },
+                    "Action": [
+                        "ecr:GetAuthorizationToken",
+                        "ecr:BatchCheckLayerAvailability",
+                        "ecr:GetDownloadUrlForLayer",
+                        "ecr:GetRepositoryPolicy",
+                        "ecr:DescribeRepositories",
+                        "ecr:ListImages",
+                        "ecr:DescribeImages",
+                        "ecr:BatchGetImage",
+                        "ecr:GetLifecyclePolicy",
+                        "ecr:GetLifecyclePolicyPreview",
+                        "ecr:ListTagsForResource",
+                        "ecr:DescribeImageScanFindings"
+                    ]
+                }
+            ]
+        };
+
+        return repository;
+    }
+
+    private createStack(scope: cdk.Construct, stage: Stage, repository: ecr.Repository) {
+        const fargateStack = new FargateStack(scope, this.internalShortName, stage, repository);
+        this.serviceImage[stage.identifier] = fargateStack.image;
+    }
+
+    private setupCodeBuildCache(): codebuild.Cache {
         // add a cache for build artifact (maven or npm dependencies, angular artifacts), used by our codebuild projects
         const s3Cache = s3.Bucket.fromBucketArn(this, 'avr-cicd-cache', 'arn:aws:s3:::avr-cicd-cache');
-        this.codeBuildCache = codebuild.Cache.bucket(s3Cache, { prefix: INTERNAL_NAME });
+        return codebuild.Cache.bucket(s3Cache, { prefix: this.internalShortName });
     }
 
     private setupCodeBuildForFeatureBranches(): void {
@@ -59,17 +112,16 @@ export class InfrastructureStack extends cdk.Stack {
         ];
 
         // .. finally the CodeBuild project to bring everything together
-        const codeBuildProject = new codebuild.Project(this, `${INTERNAL_NAME}-build`, {
-            projectName: `${INTERNAL_NAME}-snapshot-build`,
-            description: `${INTERNAL_NAME}: feature branches`,
+        const codeBuildProject = new codebuild.Project(this, `${this.internalShortName}-build`, {
+            projectName: `${this.internalShortName}-snapshot-build`,
+            description: `${this.internalShortName}: feature branches`,
             badge: false,
             environment: {
                 buildImage: codebuild.LinuxBuildImage.STANDARD_4_0,
                 computeType: CODE_BUILD_COMPUTE_TYPE,
                 privileged: true,
                 environmentVariables: {
-                    'CONTAINER_NAME': { type: codebuild.BuildEnvironmentVariableType.PLAINTEXT, value: INTERNAL_NAME },
-                    'REPOSITORY_URI': { type: codebuild.BuildEnvironmentVariableType.PLAINTEXT, value: this.ecrRepositoryUrl },
+                    'REPOSITORY_URI': { type: codebuild.BuildEnvironmentVariableType.PLAINTEXT, value: this.ecrRepository.repositoryUri },
                     'RELEASE_VERSION_PREFIX': { type: codebuild.BuildEnvironmentVariableType.PLAINTEXT, value: 'RC-' },
                     'RELEASE_VERSION_POSTFIX': { type: codebuild.BuildEnvironmentVariableType.PLAINTEXT, value: '-SNAPSHOT' }
                 }
@@ -79,7 +131,7 @@ export class InfrastructureStack extends cdk.Stack {
             source: codebuild.Source.gitHub({
                 identifier: 'GitHub',
                 owner: 'avrios',
-                repo: REPO_NAME,
+                repo: this.gitRepositoryName,
                 webhook: true,
                 reportBuildStatus: true,
                 webhookFilters: [
@@ -96,15 +148,15 @@ export class InfrastructureStack extends cdk.Stack {
         const codeBuildProject = this.setupCodeBuildPipelineProject();
 
         const sourceArtifact = new codepipeline.Artifact('sourceCode');
-        const imageDefinitionsArtifact = new codepipeline.Artifact('imageDefinitions');
+        const buildOutput = new codepipeline.Artifact();
 
         const artifactBucket = s3.Bucket.fromBucketAttributes(this, 'avr-cicd-pipeline-artifacts', {
             bucketArn: 'arn:aws:s3:::avr-cicd-pipeline-artifacts',
             encryptionKey: kms.Key.fromKeyArn(this, 'code-pipeline-artifact-key', ENCRYPTION_KEY)
         });
 
-        const codePipeline = new codepipeline.Pipeline(this, `${INTERNAL_NAME}-pipeline`, {
-            pipelineName: INTERNAL_NAME,
+        const codePipeline = new codepipeline.Pipeline(this, `${this.internalShortName}-pipeline`, {
+            pipelineName: this.internalShortName,
             artifactBucket
         });
 
@@ -118,15 +170,12 @@ export class InfrastructureStack extends cdk.Stack {
         codePipeline.addStage({
             stageName: 'Build',
             actions: [
-                this.getCodeBuildAction(sourceArtifact, imageDefinitionsArtifact, codeBuildProject)
+                this.getCodeBuildAction(sourceArtifact, buildOutput, codeBuildProject)
             ]
         });
 
-        if (DEPLOY_TO_TEST) {
-            this.addDeployStage(codePipeline, Stage.TEST, imageDefinitionsArtifact);
-        }
-
-        this.addDeployStage(codePipeline, Stage.STAGING, imageDefinitionsArtifact);
+        this.addDeployStage(codePipeline, Stage.TEST, buildOutput);
+        this.addDeployStage(codePipeline, Stage.STAGING, buildOutput);
 
         codePipeline.addStage({
             stageName: 'Approval',
@@ -135,7 +184,7 @@ export class InfrastructureStack extends cdk.Stack {
             ]
         });
 
-        this.addDeployStage(codePipeline, Stage.PROD, imageDefinitionsArtifact);
+        this.addDeployStage(codePipeline, Stage.PROD, buildOutput);
     }
 
     private addDeployStage(codePipeline: codepipeline.Pipeline, stage: Stage, artifact: codepipeline.Artifact): void {
@@ -148,17 +197,19 @@ export class InfrastructureStack extends cdk.Stack {
     }
 
     private setupCodeBuildPipelineProject(): codebuild.PipelineProject {
+        // only alphanumeric characters, dash and underscore are supported
+        const projectName = `${this.internalShortName}-release-build-${MAIN_BRANCH.replace(/[^\w]/gi, '-')}`;
+
         const encryptionKey = kms.Key.fromKeyArn(this, 'code-pipeline-project-key', ENCRYPTION_KEY);
-        const codeBuildProject = new codebuild.PipelineProject(this, `${INTERNAL_NAME}-${MAIN_BRANCH}-build`, {
-            projectName: `${INTERNAL_NAME}-release-build`,
-            description: `${INTERNAL_NAME}: ${MAIN_BRANCH} branch`,
+        const codeBuildProject = new codebuild.PipelineProject(this, `${this.internalShortName}-${MAIN_BRANCH}-build`, {
+            projectName,
+            description: `${this.internalShortName}: ${MAIN_BRANCH} branch`,
             environment: {
                 buildImage: codebuild.LinuxBuildImage.STANDARD_4_0,
                 computeType: CODE_BUILD_COMPUTE_TYPE,
                 privileged: true,
                 environmentVariables: {
-                    'CONTAINER_NAME': { type: codebuild.BuildEnvironmentVariableType.PLAINTEXT, value: INTERNAL_NAME },
-                    'REPOSITORY_URI': { type: codebuild.BuildEnvironmentVariableType.PLAINTEXT, value: this.ecrRepositoryUrl },
+                    'REPOSITORY_URI': { type: codebuild.BuildEnvironmentVariableType.PLAINTEXT, value: this.ecrRepository.repositoryUri },
                     'RELEASE_VERSION_PREFIX': { type: codebuild.BuildEnvironmentVariableType.PLAINTEXT, value: 'RELEASE-' },
                     'RELEASE_VERSION_POSTFIX': { type: codebuild.BuildEnvironmentVariableType.PLAINTEXT, value: '' }
                 }
@@ -181,7 +232,7 @@ export class InfrastructureStack extends cdk.Stack {
             output: sourceArtifact,
             oauthToken: secret,
             owner: 'avrios',
-            repo: REPO_NAME,
+            repo: this.gitRepositoryName,
             branch: MAIN_BRANCH,
             trigger: actions.GitHubTrigger.WEBHOOK
         });
@@ -199,12 +250,12 @@ export class InfrastructureStack extends cdk.Stack {
     }
 
     private getManualApprovalAction(stage: Stage): actions.ManualApprovalAction {
-        const info = `Manual approval for deploying ${INTERNAL_NAME} to ${stage.getUpperCaseIdentifier()} needed.`;
+        const info = `Manual approval for deploying ${this.internalShortName} to ${stage.getUpperCaseIdentifier()} needed.`;
         return new actions.ManualApprovalAction({
             actionName: `ManualApprovalFor${stage.getCapitalizedIdentifier()}`,
-            notificationTopic: new sns.Topic(this, `manual-approval-for-${INTERNAL_NAME}`, {
-                displayName: `manual-approval-for-${INTERNAL_NAME}`,
-                topicName: `manual-approval-for-${INTERNAL_NAME}`
+            notificationTopic: new sns.Topic(this, `manual-approval-for-${this.internalShortName}`, {
+                displayName: `manual-approval-for-${this.internalShortName}-${stage.identifier}`,
+                topicName: `manual-approval-for-${this.internalShortName}-${stage.identifier}`
             }),
             notifyEmails: APPROVAL_NOTIFY_EMAILS,
             additionalInformation: info,
@@ -212,11 +263,17 @@ export class InfrastructureStack extends cdk.Stack {
         });
     }
 
-    private getDeployAction(stage: Stage, imageDefinitionsArtifact: codepipeline.Artifact): actions.EcsDeployAction {
-        return new actions.EcsDeployAction({
-            actionName: 'DeployToECS',
-            input: imageDefinitionsArtifact,
-            service: this.fargateService[stage.getUpperCaseIdentifier()]
+    private getDeployAction(stage: Stage, buildOutput: codepipeline.Artifact): actions.CloudFormationCreateUpdateStackAction {
+        return new actions.CloudFormationCreateUpdateStackAction({
+            actionName: `cfn-deploy-${stage.identifier}`,
+            stackName: `${stage.identifier}-${this.internalShortName}`,
+            templatePath: buildOutput.atPath(`${stage.identifier}-${this.internalShortName}.template.json`),
+            adminPermissions: true,
+            parameterOverrides: {
+                [this.serviceImage[stage.identifier].tagParameterName]: buildOutput.getParam('imagedefinitions.json', 'imageTag'),
+            },
+            extraInputs: [buildOutput],
+            account: stage.env.account
         });
     }
 
