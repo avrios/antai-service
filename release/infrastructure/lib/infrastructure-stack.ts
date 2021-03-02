@@ -74,7 +74,18 @@ export class InfrastructureStack extends cdk.Stack {
                         ]
                     },
                     "Action": [
-                        "ecr:*"
+                        "ecr:GetAuthorizationToken",
+                        "ecr:BatchCheckLayerAvailability",
+                        "ecr:GetDownloadUrlForLayer",
+                        "ecr:GetRepositoryPolicy",
+                        "ecr:DescribeRepositories",
+                        "ecr:ListImages",
+                        "ecr:DescribeImages",
+                        "ecr:BatchGetImage",
+                        "ecr:GetLifecyclePolicy",
+                        "ecr:GetLifecyclePolicyPreview",
+                        "ecr:ListTagsForResource",
+                        "ecr:DescribeImageScanFindings"
                     ]
                 }
             ]
