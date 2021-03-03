@@ -324,9 +324,9 @@ export class FargateStack extends cdk.Stack {
         const proxyResource = serviceResource.addResource('{proxy+}', {
             defaultCorsPreflightOptions: {
                 allowCredentials: true,
-                allowHeaders: [ 'x-auth-token', 'x-auth-id-token', 'x-auth-access-token', 'x-filename',
-                    'x-app-path', 'x-app-version', 'x-handle-error-types', 'x-reset-token', 'content-type' ],
-                allowMethods: [ 'OPTIONS', 'GET', 'HEAD', 'POST', 'PUT', 'DELETE' ],
+                allowHeaders: ['x-auth-token', 'x-auth-id-token', 'x-auth-access-token', 'x-filename',
+                    'x-app-path', 'x-app-version', 'x-handle-error-types', 'x-reset-token', 'content-type'],
+                allowMethods: ['OPTIONS', 'GET', 'HEAD', 'POST', 'PUT', 'DELETE'],
                 allowOrigins: [this.stage.baseUrl],
                 maxAge: cdk.Duration.seconds(7200)
             }
@@ -337,7 +337,7 @@ export class FargateStack extends cdk.Stack {
             uri: this.getAlbUrl(this.stackNaming.shortName),
             integrationHttpMethod: 'ANY',
             options: {
-                cacheKeyParameters: [ 'method.request.path.proxy' ],
+                cacheKeyParameters: ['method.request.path.proxy'],
                 requestParameters: {
                     'integration.request.path.proxy': 'method.request.path.proxy'
                 },
