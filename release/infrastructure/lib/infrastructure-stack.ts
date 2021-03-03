@@ -11,7 +11,7 @@ import * as codebuild from '@aws-cdk/aws-codebuild';
 import * as codepipeline from '@aws-cdk/aws-codepipeline';
 import * as actions from '@aws-cdk/aws-codepipeline-actions';
 
-import { FargateStack } from './fargate-stack';
+import { FargateStack, FargateStackProps } from './fargate-stack';
 import { Stage } from 'avr-cdk-utils';
 import {
     MAIN_BRANCH,
@@ -43,9 +43,9 @@ export class InfrastructureStack extends cdk.Stack {
         this.gitRepositoryName = gitRepositoryName;
 
         this.ecrRepository = this.setupEcrRepository();
-        this.codeBuildCache = this.setupCodeBuildCache()
+        this.codeBuildCache = this.setupCodeBuildCache();
 
-        this.createStack(scope, Stage.TEST, this.ecrRepository);
+        this.createStack(scope, Stage.TEST, this.ecrRepository, { taskContainerProps: { cpuMultiplier: 0.5 }});
         this.createStack(scope, Stage.STAGING, this.ecrRepository);
         this.createStack(scope, Stage.PROD, this.ecrRepository);
 
@@ -94,8 +94,8 @@ export class InfrastructureStack extends cdk.Stack {
         return repository;
     }
 
-    private createStack(scope: cdk.Construct, stage: Stage, repository: ecr.Repository) {
-        const fargateStack = new FargateStack(scope, this.internalShortName, stage, repository);
+    private createStack(scope: cdk.Construct, stage: Stage, repository: ecr.Repository, stackProps?: FargateStackProps) {
+        const fargateStack = new FargateStack(scope, this.internalShortName, stage, repository, stackProps);
         this.serviceImage[stage.identifier] = fargateStack.image;
     }
 

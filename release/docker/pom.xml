@@ -99,11 +99,13 @@
                                     <time>${application.start-period}</time>
                                 </wait>
                                 <env>
-                                    <STAGE>dev</STAGE>
-                                    <XMS>500m</XMS>
-                                    <XMX>500m</XMX>
-                                    <APP_NAME>${avr.service.name}</APP_NAME>
-                                    <ENCRYPTOR_PASSWORD>secret</ENCRYPTOR_PASSWORD>
+                                    <JDK_JAVA_OPTIONS>
+                                        -Dspring.profiles.active=dev
+                                        -Djasypt.encryptor.password=secret
+                                        -Dcom.avrios.service.name=${avr.service.name}
+                                        -XX:+HeapDumpOnOutOfMemoryError
+                                        -XX:+UseThreadPriorities
+                                    </JDK_JAVA_OPTIONS>
                                 </env>
                             </run>
                         </image>

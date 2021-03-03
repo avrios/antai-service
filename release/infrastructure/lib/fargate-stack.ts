@@ -13,19 +13,6 @@ import * as ssm from '@aws-cdk/aws-ssm';
 import * as uuid from 'uuid';
 
 import { Stage } from 'avr-cdk-utils';
-import {
-    CONTAINER_PORT,
-    TASK_CPU,
-    TASK_MEMORY_LIMIT_MIB,
-    TRACKING_AGENT_TASK_CPU,
-    TRACKING_AGENT_MEMORY_LIMIT_MIB,
-    LOGS_ROUTER_TASK_CPU,
-    LOGS_ROUTER_MEMORY_LIMIT_MIB,
-    TASK_HEALTH_CHECK_GRACE_PERIOD,
-    SERVICE_XMS,
-    SERVICE_XMX,
-    LOGS_AGENT_HOST
-} from './project-settings'
 
 class FargateStackNaming {
     readonly shortName: string;
@@ -39,19 +26,67 @@ class FargateStackNaming {
     }
 }
 
+export interface FargateContainerProps {
+    /**
+     * Number of vCPUs. Can be 0.25, 0.5, 1, 2, or 4.
+     * Validity can be checked at https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-cpu-memory-error.html.
+     * Represents 1024 * cpuMultiplier of cpu.
+     */
+    readonly cpuMultiplier?: number;
+
+    /**
+     * Multiplier from cpu value to memory value. Only certain values are allowed for a given cpuMultiplier
+     * Validity can be checked at https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-cpu-memory-error.html
+     * Represents 1024 * cpuMultiplier * memoryMultiplier MiB of memory
+     */
+    readonly memoryMultiplier?: number;
+}
+
+export interface FargateStackProps {
+    readonly containerPort?: number;
+    readonly taskContainerProps?: FargateContainerProps;
+    readonly jdkJavaOptions?: string[];
+    readonly logsAgentHost?: string;
+    readonly taskHealthCheckGracePeriod?: number;
+}
+
+interface CompleteFargateContainerProps {
+    readonly cpu: number;
+    readonly memory: number;
+}
+
+interface CompleteFargateStackProps {
+    readonly containerPort: number;
+    readonly taskContainerProps: CompleteFargateContainerProps;
+    readonly jdkJavaOptions: string[];
+    readonly logsAgentHost: string;
+    readonly taskHealthCheckGracePeriod: number;
+}
+
 export class FargateStack extends cdk.Stack {
+    private static readonly DEFAULT_CONTAINER_PORT = 8080;
+    private static readonly DEFAULT_LOGS_AGENT_HOST = 'http-intake.logs.datadoghq.eu';
+    private static readonly DEFAULT_HEALTH_CHECK_GRACE_PERIOD = 60;
+
+    private static readonly DEFAULT_CPU_MULTIPLIER = 1;
+    private static readonly DEFAULT_MEMORY_MULTIPLIER = 2;
+    private static readonly DEFAULT_MAX_RAM_PERCENTAGE = 0.75;
+
     public readonly image: ecs.TagParameterContainerImage;
     public readonly loadBalancedFargateService: ecsPatterns.ApplicationLoadBalancedFargateService;
 
     private readonly stage: Stage;
     private readonly stackNaming: FargateStackNaming;
+    private readonly defaultedStackProps: CompleteFargateStackProps;
 
-    constructor(scope: cdk.Construct, serviceShortName: string, stage: Stage, repository: ecr.Repository) {
-        let stackNaming = new FargateStackNaming(serviceShortName, stage);
+    constructor(scope: cdk.Construct, serviceShortName: string, stage: Stage, repository: ecr.Repository, stackProps?: FargateStackProps) {
+        const stackNaming = new FargateStackNaming(serviceShortName, stage);
         super(scope, stackNaming.stageAwareServiceName, { env: stage.env });
 
         this.stackNaming = stackNaming;
         this.stage = stage;
+
+        this.defaultedStackProps = FargateStack.defaultMissingValues(stackProps);
 
         this.image = new ecs.TagParameterContainerImage(repository);
         this.loadBalancedFargateService = this.createFargateService();
@@ -69,28 +104,25 @@ export class FargateStack extends cdk.Stack {
         const taskDefinition = this.createTaskDefinition();
 
         const datadogApiKey = ssm.StringParameter.valueForStringParameter(this, `/${this.stage.identifier}/datadog/apikey`);
+        const defaultJavaOptions = this.compileDefaultJavaOptions(this.defaultedStackProps.jdkJavaOptions);
 
-        const password = ssm.StringParameter.valueForStringParameter(this, `/${this.stage.identifier}/encryptor.password`);
         const containerDefinition = taskDefinition.addContainer(this.stackNaming.serviceName, {
             image: this.image,
             logging: this.setupFirelensLogs(datadogApiKey),
             environment: {
-                'APP_NAME': this.stackNaming.serviceName,
-                'ENCRYPTOR_PASSWORD': password,
-                'STAGE': this.stage.identifier,
-                'XMS': `${SERVICE_XMS}m`,
-                'XMX': `${SERVICE_XMX}m`,
+                defaultJavaOptions,
                 'DD_ENV': this.stage.identifier,
                 'DD_JMXFETCH_ENABLED': 'true',
                 'DD_LOGS_INJECTION': 'true',
                 'DD_PROFILING_ENABLED': 'true',
                 'DD_SERVICE_MAPPING': `${this.stackNaming.shortName}:${this.stackNaming.serviceName}`,
                 'DD_TRACE_ANALYTICS_ENABLED': 'true'
-            }
+            },
+            memoryReservationMiB: this.defaultedStackProps.taskContainerProps.memory * FargateStack.DEFAULT_MAX_RAM_PERCENTAGE
         });
 
         containerDefinition.addPortMappings({
-            containerPort: CONTAINER_PORT
+            containerPort: this.defaultedStackProps.containerPort
         });
 
         this.setupMonitoring(taskDefinition, datadogApiKey);
@@ -98,10 +130,8 @@ export class FargateStack extends cdk.Stack {
         const fargateService = new ecsPatterns.ApplicationLoadBalancedFargateService(this, this.stackNaming.stageAwareServiceName, {
             serviceName: this.stackNaming.serviceName,
             cluster,
-            cpu: TASK_CPU,
-            memoryLimitMiB: TASK_MEMORY_LIMIT_MIB,
             taskDefinition,
-            healthCheckGracePeriod: cdk.Duration.seconds(TASK_HEALTH_CHECK_GRACE_PERIOD),
+            healthCheckGracePeriod: cdk.Duration.seconds(this.defaultedStackProps.taskHealthCheckGracePeriod),
             desiredCount: 1,
             minHealthyPercent: 100,
             maxHealthyPercent: 200,
@@ -126,6 +156,8 @@ export class FargateStack extends cdk.Stack {
 
     private createTaskDefinition(): ecs.FargateTaskDefinition {
         return new ecs.FargateTaskDefinition(this, `taskdef-${this.stage.identifier}`, {
+            cpu: this.defaultedStackProps.taskContainerProps.cpu,
+            memoryLimitMiB: this.defaultedStackProps.taskContainerProps.memory,
             executionRole: new iam.Role(this, `taskexec-${this.stage.identifier}`, {
                 roleName: cdk.PhysicalName.GENERATE_IF_NEEDED,
                 assumedBy: new iam.CompositePrincipal(
@@ -144,8 +176,6 @@ export class FargateStack extends cdk.Stack {
     private setupApmAgent(taskDefinition: ecs.FargateTaskDefinition, datadogApiKey: string): void {
         taskDefinition.addContainer('datadog-agent', {
             image: ecs.ContainerImage.fromRegistry(`datadog/agent:latest`),
-            cpu: TRACKING_AGENT_TASK_CPU,
-            memoryReservationMiB: TRACKING_AGENT_MEMORY_LIMIT_MIB,
             environment: {
                 'DD_API_KEY': datadogApiKey,
                 'DD_APM_ENABLED': 'true',
@@ -157,8 +187,7 @@ export class FargateStack extends cdk.Stack {
                 'DD_VERSION': `${this.retrieveImageTag()}`,
                 'ECS_FARGATE': 'true'
             },
-            logging: this.setupCloudWatchLogGroup('datadog-agent'),
-            essential: true
+            logging: this.setupCloudWatchLogGroup('datadog-agent')
         });
     }
 
@@ -186,10 +215,7 @@ export class FargateStack extends cdk.Stack {
                 type: ecs.FirelensLogRouterType.FLUENTBIT
             },
             logging: this.setupCloudWatchLogGroup('log-router'),
-            image,
-            essential: true,
-            memoryReservationMiB: LOGS_ROUTER_MEMORY_LIMIT_MIB,
-            cpu: LOGS_ROUTER_TASK_CPU
+            image
         })
     }
 
@@ -221,7 +247,7 @@ export class FargateStack extends cdk.Stack {
                 'apiKey': datadogApiKey,
                 'provider': 'ecs',
                 'dd_service': this.stackNaming.serviceName,
-                'Host': LOGS_AGENT_HOST,
+                'Host': this.defaultedStackProps.logsAgentHost,
                 'TLS': 'on',
                 'dd_source': 'java',
                 'dd_tags': `env:${this.stage.identifier}`,
@@ -243,7 +269,7 @@ export class FargateStack extends cdk.Stack {
     private configureTargetGroup(): void {
         this.loadBalancedFargateService.targetGroup.configureHealthCheck({
             path: `/${this.stackNaming.shortName}/healthCheck`,
-            port: `${CONTAINER_PORT}`,
+            port: `${this.defaultedStackProps.containerPort}`,
             healthyThresholdCount: 2,
             unhealthyThresholdCount: 8,
             timeout: cdk.Duration.seconds(2),
@@ -338,5 +364,47 @@ export class FargateStack extends cdk.Stack {
 
     private getAlbUrl(contextName: string): string {
         return `http://${this.stage.getAlbDns()}/${contextName}/{proxy}`;
+    }
+
+    private static defaultMissingValues(stackProps: FargateStackProps | undefined): CompleteFargateStackProps {
+        const taskContainerProps = FargateStack.completeContainerProps(stackProps?.taskContainerProps);
+
+        const containerPort = stackProps?.containerPort ? stackProps?.containerPort : FargateStack.DEFAULT_CONTAINER_PORT;
+        const logsAgentHost = stackProps?.logsAgentHost ? stackProps?.logsAgentHost : FargateStack.DEFAULT_LOGS_AGENT_HOST;
+        const jdkJavaOptions = stackProps?.jdkJavaOptions ? stackProps?.jdkJavaOptions : [];
+        const taskHealthCheckGracePeriod = stackProps?.taskHealthCheckGracePeriod ?
+            stackProps?.taskHealthCheckGracePeriod :
+            FargateStack.DEFAULT_HEALTH_CHECK_GRACE_PERIOD;
+
+        return {
+            containerPort,
+            logsAgentHost,
+            taskContainerProps,
+            jdkJavaOptions,
+            taskHealthCheckGracePeriod,
+        };
+    }
+
+    private static completeContainerProps(taskContainer: FargateContainerProps | undefined): CompleteFargateContainerProps {
+        const cpuMultiplier = taskContainer?.cpuMultiplier ? taskContainer?.cpuMultiplier : FargateStack.DEFAULT_CPU_MULTIPLIER;
+        const memoryMultiplier = taskContainer?.memoryMultiplier ? taskContainer?.memoryMultiplier : FargateStack.DEFAULT_MEMORY_MULTIPLIER;
+        const cpu = cpuMultiplier * 1024;
+        const memory = memoryMultiplier * cpu;
+        return {
+            cpu,
+            memory,
+        };
+    }
+
+    private compileDefaultJavaOptions(defaultJavaOptions: string[]): string {
+        const password = ssm.StringParameter.valueForStringParameter(this, `/${this.stage.identifier}/encryptor.password`);
+        defaultJavaOptions.push(`-Djasypt.encryptor.password=${password}`);
+
+        defaultJavaOptions.push(`-Dspring.profiles.active=${this.stage.identifier}`);
+        defaultJavaOptions.push(`-Dcom.avrios.service.name=${this.stackNaming.serviceName}`);
+        defaultJavaOptions.push(`-XX:+UseThreadPriorities`);
+        defaultJavaOptions.push(`-XX:MaxRAMPercentage=${FargateStack.DEFAULT_MAX_RAM_PERCENTAGE * 100}`);
+
+        return defaultJavaOptions.map(option => `${option.trim()}`).join(' ');
     }
 }

@@ -3,78 +3,6 @@
 import { ComputeType } from '@aws-cdk/aws-codebuild';
 
 /**
- * Minimal amount of memory for the service in MB.
- * Should be less than TASK_MEMORY_LIMIT_MIB.
- */
-export const SERVICE_XMS                       = 750;
-
-/**
- * Maximum amount of memory for the service in MB.
- * Should be less than TASK_MEMORY_LIMIT_MIB and is usually equals to SERVICE_XMS.
- */
-export const SERVICE_XMX                       = SERVICE_XMS;
-
-/**
- * The number of cpu units used by the task.
- * See ApplicationLoadBalancedFargateServiceProps for possible values.
- */
-export const TASK_CPU                          = 512;
-
-/**
- * The amount (in MiB) of memory used by the task.
- * See ApplicationLoadBalancedFargateServiceProps for possible values.
- * Depends on TASK_CPU.
- */
-export const TASK_MEMORY_LIMIT_MIB             = 1024;
-
-/**
- * The number of cpu units used by the tracking agent container.
- * See ContainerDefinitionOptions for possible values.
- *
- * The CPU amount recommended by datadog: https://docs.datadoghq.com/integrations/ecs_fargate/.
- */
-export const TRACKING_AGENT_TASK_CPU           = 10;
-
-/**
- * The amount (in MiB) of memory used by the tracking agent container.
- * See ContainerDefinitionOptions for possible values.
- * Depends on TASK_CPU.
- *
- * The memory amount recommended by datadog: https://docs.datadoghq.com/integrations/ecs_fargate/.
- */
-export const TRACKING_AGENT_MEMORY_LIMIT_MIB   = 256;
-
-/**
- * The number of cpu units used by the log router container.
- * See ContainerDefinitionOptions for possible values.
- *
- * The cpu amount is based on the following study:
- * https://aws.amazon.com/blogs/containers/under-the-hood-firelens-for-amazon-ecs-tasks/
- */
-export const LOGS_ROUTER_TASK_CPU              = 5;
-
-/**
- * The amount (in MiB) of memory used by the log router container.
- * See ContainerDefinitionOptions for possible values.
- * Depends on TASK_CPU.
- *
- * The memory amount is based on the following study:
- * https://aws.amazon.com/blogs/containers/under-the-hood-firelens-for-amazon-ecs-tasks/
- */
-export const LOGS_ROUTER_MEMORY_LIMIT_MIB      = 100;
-
-/**
- * The period of time, in seconds, that the Amazon ECS service scheduler ignores unhealthy
- * Elastic Load Balancing target health checks after a task has first started.
- */
-export const TASK_HEALTH_CHECK_GRACE_PERIOD    = 60;
-
-/**
- * The port number on the container that is bound to the user-specified host port.
- */
-export const CONTAINER_PORT                    = 8080;
-
-/**
  * Size of AWS CodeBuild instance to compile and build the docker image.
  * You may start with ComputeType.SMALL and increase the size of the instance
  * if building takes too long or you run out of memory.
@@ -107,8 +35,3 @@ export const GITHUB_TOKEN_PATH                 = '/dev/github.token';
  * Encryption key used to share code pipeline artifacts.
  */
 export const ENCRYPTION_KEY                    = 'arn:aws:kms:eu-central-1:821747761766:key/656022f0-aa97-4c56-bb5f-db7d5a8f29b9';
-
-/**
- * Logs Agent host.
- */
-export const LOGS_AGENT_HOST                   = 'http-intake.logs.datadoghq.eu';
