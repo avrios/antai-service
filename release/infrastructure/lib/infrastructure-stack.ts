@@ -15,13 +15,26 @@ import { FargateStack, FargateStackProps } from './fargate-stack';
 import { Stage } from 'avr-cdk-utils';
 import {
     MAIN_BRANCH,
-    GITHUB_TOKEN_PATH,
-    ENCRYPTION_KEY,
     APPROVAL_NOTIFY_EMAILS,
     CODE_BUILD_COMPUTE_TYPE
 } from './project-settings'
 
 export class InfrastructureStack extends cdk.Stack {
+    /**
+     * Location of the github token in the AWS Secret Manager.
+     */
+    private static readonly GITHUB_TOKEN_PATH = '/dev/github.token';
+
+    /**
+     * Encryption key used to share code build artifacts.
+     */
+    private static readonly ENCRYPTION_KEY_ARN = 'arn:aws:kms:eu-central-1:821747761766:key/656022f0-aa97-4c56-bb5f-db7d5a8f29b9';
+
+    /**
+     * Pattern used to identify hotfix branches that are released to staging/prod.
+     */
+    private static readonly HOTFIX_BRANCH_PATTERN = 'hotfix/*';
+
     private readonly serviceImage: {
         [key: string]: ecs.TagParameterContainerImage;
     } = {};
@@ -49,10 +62,36 @@ export class InfrastructureStack extends cdk.Stack {
         this.createStack(scope, Stage.STAGING, this.ecrRepository);
         this.createStack(scope, Stage.PROD, this.ecrRepository);
 
-        this.setupCodeBuildForFeatureBranches();
-        this.setupCodePipelineForMainBranch();
+        const encryptionKey = kms.Key.fromKeyArn(this, 'code-pipeline-artifact-key', InfrastructureStack.ENCRYPTION_KEY_ARN);
+
+        const s3SourceBucket = this.setupCodeBuildArtifactBucket(encryptionKey);
+        const s3TargetBucket = this.setupCodePipelineArtifactBucket(encryptionKey);
+
+        const featureArtifactName = 'feature.zip';
+        this.setupCodeBuildForFeatureBranches(s3SourceBucket, featureArtifactName);
+        this.setupCodePipelineForFeatureBranches(s3SourceBucket, s3TargetBucket, featureArtifactName);
+
+        const hotfixArtifactName = 'hotfix.zip';
+        this.setupCodeBuildForHotfixBranches(s3SourceBucket, hotfixArtifactName);
+        this.setupCodePipelineForHotfixBranches(s3SourceBucket, s3TargetBucket, hotfixArtifactName);
+
+        this.setupCodePipelineForMainBranch(encryptionKey, s3TargetBucket);
 
         cdk.Tags.of(this).add('env', Stage.TEST.identifier);
+    }
+
+    private setupCodeBuildArtifactBucket(encryptionKey: kms.IKey): s3.IBucket {
+        return s3.Bucket.fromBucketAttributes(this, 'avr-cicd-codebuild-artifacts', {
+            bucketArn: 'arn:aws:s3:::avr-cicd-codebuild-artifacts',
+            encryptionKey
+        });
+    }
+
+    private setupCodePipelineArtifactBucket(encryptionKey: kms.IKey): s3.IBucket {
+        return s3.Bucket.fromBucketAttributes(this, 'avr-cicd-pipeline-artifacts', {
+            bucketArn: 'arn:aws:s3:::avr-cicd-pipeline-artifacts',
+            encryptionKey
+        });
     }
 
     private setupEcrRepository(): ecr.Repository {
@@ -105,15 +144,10 @@ export class InfrastructureStack extends cdk.Stack {
         return codebuild.Cache.bucket(s3Cache, { prefix: this.internalShortName });
     }
 
-    private setupCodeBuildForFeatureBranches(): void {
-        // events triggering AWS CodeBuild
-        const triggerEvents = [
-            codebuild.EventAction.PUSH
-        ];
-
-        // .. finally the CodeBuild project to bring everything together
-        const codeBuildProject = new codebuild.Project(this, `${this.internalShortName}-build`, {
-            projectName: `${this.internalShortName}-snapshot-build`,
+    private setupCodeBuildForFeatureBranches(s3SourceBucket: s3.IBucket, artifactName: string): void {
+        const projectName = `${this.internalShortName}-feature`;
+        const codeBuildProject = new codebuild.Project(this, `${projectName}-build`, {
+            projectName,
             description: `${this.internalShortName}: feature branches`,
             badge: false,
             environment: {
@@ -122,8 +156,51 @@ export class InfrastructureStack extends cdk.Stack {
                 privileged: true,
                 environmentVariables: {
                     'REPOSITORY_URI': { type: codebuild.BuildEnvironmentVariableType.PLAINTEXT, value: this.ecrRepository.repositoryUri },
-                    'RELEASE_VERSION_PREFIX': { type: codebuild.BuildEnvironmentVariableType.PLAINTEXT, value: 'RC-' },
+                    'RELEASE_VERSION_PREFIX': { type: codebuild.BuildEnvironmentVariableType.PLAINTEXT, value: 'FEATURE-' },
                     'RELEASE_VERSION_POSTFIX': { type: codebuild.BuildEnvironmentVariableType.PLAINTEXT, value: '-SNAPSHOT' }
+                }
+            },
+            buildSpec: codebuild.BuildSpec.fromSourceFilename('.build/buildspec.yml'),
+            cache: this.codeBuildCache,
+            source: codebuild.Source.gitHub({
+                    identifier: 'GitHub',
+                    owner: 'avrios',
+                    repo: this.gitRepositoryName,
+                    webhook: true,
+                    reportBuildStatus: true,
+                    webhookFilters: [
+                        codebuild.FilterGroup.inEventOf(codebuild.EventAction.PUSH)
+                            .andBranchIsNot(MAIN_BRANCH)
+                            .andBranchIsNot(InfrastructureStack.HOTFIX_BRANCH_PATTERN),
+                    ],
+                    cloneDepth: 1
+            }),
+            artifacts: codebuild.Artifacts.s3({
+                bucket: s3SourceBucket,
+                path: this.internalShortName,
+                name: artifactName,
+                packageZip: true,
+                includeBuildId: false
+            })
+        });
+
+        this.updateCodeBuildProjectPermissions(codeBuildProject);
+    }
+
+    private setupCodeBuildForHotfixBranches(s3SourceBucket: s3.IBucket, artifactName: string): void {
+        const projectName = `${this.internalShortName}-hotfix`;
+        const codeBuildProject = new codebuild.Project(this, `${projectName}-build`, {
+            projectName,
+            description: `${this.internalShortName}: hotfix branches`,
+            badge: false,
+            environment: {
+                buildImage: codebuild.LinuxBuildImage.STANDARD_4_0,
+                computeType: CODE_BUILD_COMPUTE_TYPE,
+                privileged: true,
+                environmentVariables: {
+                    'REPOSITORY_URI': { type: codebuild.BuildEnvironmentVariableType.PLAINTEXT, value: this.ecrRepository.repositoryUri },
+                    'RELEASE_VERSION_PREFIX': { type: codebuild.BuildEnvironmentVariableType.PLAINTEXT, value: 'HOTFIX-' },
+                    'RELEASE_VERSION_POSTFIX': { type: codebuild.BuildEnvironmentVariableType.PLAINTEXT, value: '' }
                 }
             },
             buildSpec: codebuild.BuildSpec.fromSourceFilename('.build/buildspec.yml'),
@@ -135,56 +212,110 @@ export class InfrastructureStack extends cdk.Stack {
                 webhook: true,
                 reportBuildStatus: true,
                 webhookFilters: [
-                    codebuild.FilterGroup.inEventOf(...triggerEvents).andBranchIsNot(MAIN_BRANCH),
+                    codebuild.FilterGroup.inEventOf(codebuild.EventAction.PUSH)
+                        .andBranchIs(InfrastructureStack.HOTFIX_BRANCH_PATTERN)
                 ],
                 cloneDepth: 1
+            }),
+            artifacts: codebuild.Artifacts.s3({
+                bucket: s3SourceBucket,
+                path: this.internalShortName,
+                name: artifactName,
+                packageZip: true,
+                includeBuildId: false
             })
         });
 
         this.updateCodeBuildProjectPermissions(codeBuildProject);
     }
 
-    private setupCodePipelineForMainBranch(): void {
-        const codeBuildProject = this.setupCodeBuildPipelineProject();
+    private setupCodePipelineForFeatureBranches(sourceBucket: s3.IBucket, targetBucket: s3.IBucket, artifactName: string): void {
+        const s3SourceArtifact = new codepipeline.Artifact();
+
+        const codePipeline = new codepipeline.Pipeline(this, `${this.internalShortName}-feature-pipeline`, {
+            pipelineName: `${this.internalShortName}-feature`,
+            artifactBucket: targetBucket
+        });
+
+        this.addS3SourceStage(codePipeline, sourceBucket, s3SourceArtifact, artifactName);
+        this.addApprovalStage(codePipeline, Stage.TEST, false);
+        this.addDeployStage(codePipeline, Stage.TEST, s3SourceArtifact);
+    }
+
+    private setupCodePipelineForHotfixBranches(sourceBucket: s3.IBucket, targetBucket: s3.IBucket, artifactName: string): void {
+        const s3SourceArtifact = new codepipeline.Artifact();
+
+        const codePipeline = new codepipeline.Pipeline(this, `${this.internalShortName}-hotfix-pipeline`, {
+            pipelineName: `${this.internalShortName}-hotfix`,
+            artifactBucket: targetBucket
+        });
+
+        this.addS3SourceStage(codePipeline, sourceBucket, s3SourceArtifact, artifactName);
+
+        this.addApprovalStage(codePipeline, Stage.STAGING, false);
+        this.addDeployStage(codePipeline, Stage.STAGING, s3SourceArtifact);
+
+        this.addApprovalStage(codePipeline, Stage.PROD, false);
+        this.addDeployStage(codePipeline, Stage.PROD, s3SourceArtifact);
+    }
+
+    private setupCodePipelineForMainBranch(encryptionKey: kms.IKey, targetBucket: s3.IBucket): void {
+        const codeBuildProject = this.setupCodeBuildPipelineProject(encryptionKey);
 
         const sourceArtifact = new codepipeline.Artifact('sourceCode');
         const buildOutput = new codepipeline.Artifact();
+        const artifactBucket = targetBucket;
 
-        const artifactBucket = s3.Bucket.fromBucketAttributes(this, 'avr-cicd-pipeline-artifacts', {
-            bucketArn: 'arn:aws:s3:::avr-cicd-pipeline-artifacts',
-            encryptionKey: kms.Key.fromKeyArn(this, 'code-pipeline-artifact-key', ENCRYPTION_KEY)
-        });
-
-        const codePipeline = new codepipeline.Pipeline(this, `${this.internalShortName}-pipeline`, {
-            pipelineName: this.internalShortName,
+        const codePipeline = new codepipeline.Pipeline(this, `${this.internalShortName}-main-pipeline`, {
+            pipelineName: `${this.internalShortName}-main`,
             artifactBucket
         });
 
+        this.addGithubSourceStage(codePipeline, sourceArtifact);
+        this.addCodeBuildStage(codePipeline, sourceArtifact, buildOutput, codeBuildProject);
+
+        this.addDeployStage(codePipeline, Stage.TEST, buildOutput);
+        this.addDeployStage(codePipeline, Stage.STAGING, buildOutput);
+
+        this.addApprovalStage(codePipeline, Stage.PROD, false);
+        this.addDeployStage(codePipeline, Stage.PROD, buildOutput);
+    }
+
+    private addGithubSourceStage(codePipeline: codepipeline.Pipeline, artifact: codepipeline.Artifact): void {
         codePipeline.addStage({
             stageName: 'Source',
             actions: [
-                this.getGitHubAction(sourceArtifact)
+                this.getGitHubAction(artifact)
             ]
         });
+    }
 
+    private addCodeBuildStage(codePipeline: codepipeline.Pipeline, sourceArtifact: codepipeline.Artifact,
+                              buildOutput: codepipeline.Artifact, codeBuildProject: codebuild.PipelineProject): void {
         codePipeline.addStage({
             stageName: 'Build',
             actions: [
                 this.getCodeBuildAction(sourceArtifact, buildOutput, codeBuildProject)
             ]
         });
+    }
 
-        this.addDeployStage(codePipeline, Stage.TEST, buildOutput);
-        this.addDeployStage(codePipeline, Stage.STAGING, buildOutput);
-
+    private addS3SourceStage(codePipeline: codepipeline.Pipeline, sourceBucket: s3.IBucket, artifact: codepipeline.Artifact, artifactName: string): void {
         codePipeline.addStage({
-            stageName: 'Approval',
+            stageName: 'Source',
             actions: [
-                this.getManualApprovalAction(Stage.PROD)
+                this.getS3SourceAction(sourceBucket, artifact, artifactName)
             ]
         });
+    }
 
-        this.addDeployStage(codePipeline, Stage.PROD, buildOutput);
+    private addApprovalStage(codePipeline: codepipeline.Pipeline, stage: Stage, notify: boolean): void {
+        codePipeline.addStage({
+            stageName: `ApprovalFor${stage.getCapitalizedIdentifier()}`,
+            actions: [
+                this.getManualApprovalAction(stage, notify)
+            ]
+        });
     }
 
     private addDeployStage(codePipeline: codepipeline.Pipeline, stage: Stage, artifact: codepipeline.Artifact): void {
@@ -196,12 +327,33 @@ export class InfrastructureStack extends cdk.Stack {
         });
     }
 
-    private setupCodeBuildPipelineProject(): codebuild.PipelineProject {
-        // only alphanumeric characters, dash and underscore are supported
-        const projectName = `${this.internalShortName}-release-build-${MAIN_BRANCH.replace(/[^\w]/gi, '-')}`;
+    private getS3SourceAction(sourceBucket: s3.IBucket, s3SourceArtifact: codepipeline.Artifact, artifactName: string): actions.S3SourceAction {
+        return new actions.S3SourceAction({
+            actionName: 'SourceCodeCheckout',
+            bucket: sourceBucket,
+            bucketKey: `${this.internalShortName}/${artifactName}`,
+            output: s3SourceArtifact
+        });
+    }
 
-        const encryptionKey = kms.Key.fromKeyArn(this, 'code-pipeline-project-key', ENCRYPTION_KEY);
-        const codeBuildProject = new codebuild.PipelineProject(this, `${this.internalShortName}-${MAIN_BRANCH}-build`, {
+    private getDeployAction(stage: Stage, buildOutput: codepipeline.Artifact): actions.CloudFormationCreateUpdateStackAction {
+        return new actions.CloudFormationCreateUpdateStackAction({
+            actionName: `cfn-deploy-${stage.identifier}`,
+            stackName: `${stage.identifier}-${this.internalShortName}`,
+            templatePath: buildOutput.atPath(`${stage.identifier}-${this.internalShortName}.template.json`),
+            adminPermissions: true,
+            parameterOverrides: {
+                [this.serviceImage[stage.identifier].tagParameterName]: buildOutput.getParam('imagedefinitions.json', 'imageTag'),
+            },
+            extraInputs: [buildOutput],
+            account: stage.env.account
+        });
+    }
+
+    private setupCodeBuildPipelineProject(encryptionKey: kms.IKey): codebuild.PipelineProject {
+        // only alphanumeric characters, dash and underscore are supported
+        const projectName = `${this.internalShortName}-${MAIN_BRANCH.replace(/[^\w]/gi, '-')}`;
+        const codeBuildProject = new codebuild.PipelineProject(this, `${projectName}-build`, {
             projectName,
             description: `${this.internalShortName}: ${MAIN_BRANCH} branch`,
             environment: {
@@ -225,7 +377,7 @@ export class InfrastructureStack extends cdk.Stack {
     }
 
     private getGitHubAction(sourceArtifact: codepipeline.Artifact): actions.GitHubSourceAction {
-        const secret = cdk.SecretValue.secretsManager(GITHUB_TOKEN_PATH);
+        const secret = cdk.SecretValue.secretsManager(InfrastructureStack.GITHUB_TOKEN_PATH);
 
         return new actions.GitHubSourceAction({
             actionName: 'SourceCodeCheckout',
@@ -245,35 +397,20 @@ export class InfrastructureStack extends cdk.Stack {
             actionName: 'BuildAndTest',
             project: codeBuildProject,
             input: sourceArtifact,
-            outputs: [ imageDefinitionsArtifact ],
+            outputs: [imageDefinitionsArtifact],
         });
     }
 
-    private getManualApprovalAction(stage: Stage): actions.ManualApprovalAction {
+    private getManualApprovalAction(stage: Stage, notify: boolean): actions.ManualApprovalAction {
         const info = `Manual approval for deploying ${this.internalShortName} to ${stage.getUpperCaseIdentifier()} needed.`;
         return new actions.ManualApprovalAction({
             actionName: `ManualApprovalFor${stage.getCapitalizedIdentifier()}`,
-            notificationTopic: new sns.Topic(this, `manual-approval-for-${this.internalShortName}`, {
+            notificationTopic: notify ? new sns.Topic(this, `manual-approval-for-${this.internalShortName}-${stage.identifier}`, {
                 displayName: `manual-approval-for-${this.internalShortName}-${stage.identifier}`,
                 topicName: `manual-approval-for-${this.internalShortName}-${stage.identifier}`
-            }),
-            notifyEmails: APPROVAL_NOTIFY_EMAILS,
-            additionalInformation: info,
-            externalEntityLink: 'https://staging.avrios.com/public/login',
-        });
-    }
-
-    private getDeployAction(stage: Stage, buildOutput: codepipeline.Artifact): actions.CloudFormationCreateUpdateStackAction {
-        return new actions.CloudFormationCreateUpdateStackAction({
-            actionName: `cfn-deploy-${stage.identifier}`,
-            stackName: `${stage.identifier}-${this.internalShortName}`,
-            templatePath: buildOutput.atPath(`${stage.identifier}-${this.internalShortName}.template.json`),
-            adminPermissions: true,
-            parameterOverrides: {
-                [this.serviceImage[stage.identifier].tagParameterName]: buildOutput.getParam('imagedefinitions.json', 'imageTag'),
-            },
-            extraInputs: [buildOutput],
-            account: stage.env.account
+            }) : undefined,
+            notifyEmails: notify ? APPROVAL_NOTIFY_EMAILS : undefined,
+            additionalInformation: info
         });
     }
 
@@ -285,9 +422,7 @@ export class InfrastructureStack extends cdk.Stack {
         project.role?.addManagedPolicy(codeArtifactAdminPolicy);
 
         project.addToRolePolicy(new iam.PolicyStatement({
-            actions: [
-                'sts:GetServiceBearerToken'
-            ],
+            actions: ['sts:GetServiceBearerToken'],
             resources: ['*'],
         }));
     }

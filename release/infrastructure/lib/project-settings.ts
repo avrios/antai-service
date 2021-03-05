@@ -25,13 +25,3 @@ export const APPROVAL_NOTIFY_EMAILS            = [];
  * Name of the main branch. The infrastructure stack creates a deployment pipeline for this branch.
  */
 export const MAIN_BRANCH                       = 'main';
-
-/**
- * Location of the github token in the AWS Secret Manager.
- */
-export const GITHUB_TOKEN_PATH                 = '/dev/github.token';
-
-/**
- * Encryption key used to share code pipeline artifacts.
- */
-export const ENCRYPTION_KEY                    = 'arn:aws:kms:eu-central-1:821747761766:key/656022f0-aa97-4c56-bb5f-db7d5a8f29b9';
