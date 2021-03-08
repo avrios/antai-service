@@ -22,7 +22,7 @@ class FargateStackNaming {
     constructor(shortName: string, stage: Stage) {
         this.shortName = shortName;
         this.serviceName = `${shortName}-service`;
-        this.stageAwareServiceName = `${stage.identifier}-${this.shortName}`;
+        this.stageAwareServiceName = `${stage.identifier}-${this.shortName}-app`;
     }
 }
 

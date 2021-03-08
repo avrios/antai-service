@@ -19,7 +19,7 @@ import {
     CODE_BUILD_COMPUTE_TYPE
 } from './project-settings'
 
-export class InfrastructureStack extends cdk.Stack {
+export class CiCdStack extends cdk.Stack {
     /**
      * Location of the github token in the AWS Secret Manager.
      */
@@ -50,7 +50,7 @@ export class InfrastructureStack extends cdk.Stack {
      * @param gitRepositoryName  Repository name without github and owner prefix
      */
     constructor(scope: cdk.Construct, internalShortName: string, gitRepositoryName: string) {
-        super(scope, `${internalShortName}-infrastructure`, { env: Stage.TEST.env });
+        super(scope, `${internalShortName}-cicd`, { env: Stage.TEST.env });
 
         this.internalShortName = internalShortName;
         this.gitRepositoryName = gitRepositoryName;
@@ -62,7 +62,7 @@ export class InfrastructureStack extends cdk.Stack {
         this.createStack(scope, Stage.STAGING, this.ecrRepository);
         this.createStack(scope, Stage.PROD, this.ecrRepository);
 
-        const encryptionKey = kms.Key.fromKeyArn(this, 'code-pipeline-artifact-key', InfrastructureStack.ENCRYPTION_KEY_ARN);
+        const encryptionKey = kms.Key.fromKeyArn(this, 'code-pipeline-artifact-key', CiCdStack.ENCRYPTION_KEY_ARN);
 
         const s3SourceBucket = this.setupCodeBuildArtifactBucket(encryptionKey);
         const s3TargetBucket = this.setupCodePipelineArtifactBucket(encryptionKey);
@@ -171,7 +171,7 @@ export class InfrastructureStack extends cdk.Stack {
                     webhookFilters: [
                         codebuild.FilterGroup.inEventOf(codebuild.EventAction.PUSH)
                             .andBranchIsNot(MAIN_BRANCH)
-                            .andBranchIsNot(InfrastructureStack.HOTFIX_BRANCH_PATTERN),
+                            .andBranchIsNot(CiCdStack.HOTFIX_BRANCH_PATTERN),
                     ],
                     cloneDepth: 1
             }),
@@ -213,7 +213,7 @@ export class InfrastructureStack extends cdk.Stack {
                 reportBuildStatus: true,
                 webhookFilters: [
                     codebuild.FilterGroup.inEventOf(codebuild.EventAction.PUSH)
-                        .andBranchIs(InfrastructureStack.HOTFIX_BRANCH_PATTERN)
+                        .andBranchIs(CiCdStack.HOTFIX_BRANCH_PATTERN)
                 ],
                 cloneDepth: 1
             }),
@@ -377,7 +377,7 @@ export class InfrastructureStack extends cdk.Stack {
     }
 
     private getGitHubAction(sourceArtifact: codepipeline.Artifact): actions.GitHubSourceAction {
-        const secret = cdk.SecretValue.secretsManager(InfrastructureStack.GITHUB_TOKEN_PATH);
+        const secret = cdk.SecretValue.secretsManager(CiCdStack.GITHUB_TOKEN_PATH);
 
         return new actions.GitHubSourceAction({
             actionName: 'SourceCodeCheckout',
