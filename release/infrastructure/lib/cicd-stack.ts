@@ -340,7 +340,7 @@ export class CiCdStack extends cdk.Stack {
         return new actions.CloudFormationCreateUpdateStackAction({
             actionName: `cfn-deploy-${stage.identifier}`,
             stackName: `${stage.identifier}-${this.internalShortName}`,
-            templatePath: buildOutput.atPath(`${stage.identifier}-${this.internalShortName}.template.json`),
+            templatePath: buildOutput.atPath(`${stage.identifier}-${this.internalShortName}-app.template.json`),
             adminPermissions: true,
             parameterOverrides: {
                 [this.serviceImage[stage.identifier].tagParameterName]: buildOutput.getParam('imagedefinitions.json', 'imageTag'),
