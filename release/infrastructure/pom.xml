@@ -132,7 +132,7 @@
                                 </goals>
                                 <configuration>
                                     <executable>npx</executable>
-                                    <commandlineArgs>cdk deploy "${avr.service.name.short}-infrastructure" --profile ${aws.tools-account.profile} --require-approval never</commandlineArgs>
+                                    <commandlineArgs>cdk deploy "${avr.service.name.short}-cicd" --profile ${aws.tools-account.profile} --require-approval never</commandlineArgs>
                                 </configuration>
                             </execution>
                         </executions>
