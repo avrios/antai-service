@@ -28,6 +28,8 @@
         <Logger name="com.querydsl.jpa.impl.JPAQuery" level="error" />
         <Logger name="xenqtt" level="info" />
         <Logger name="io.lettuce" level="error"/>
+        <logger name="io.netty.util.internal" level="error"/>
+        <logger name="io.micrometer.shaded.io.netty.util.internal" level="error"/>
 
         <Root level="debug">
             <AppenderRef ref="Console" />
