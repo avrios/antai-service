@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder" />
+    </appender>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %X{correlationId} %-5level %logger{2} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="Bugsnag" class="com.avrios.girders.common.bugsnag.BugsnagLogbackAppender" />
+
+    <logger name="com.avrios.girders.monitoring" level="INFO" />
+
+    <logger name="${avr.service.rootpackage}" level="DEBUG" />
+    <logger name="com.avrios.girders.common.rest" level="DEBUG" />
+
+    <logger name="io.undertow" level="ERROR" />
+    <logger name="org.apache" level="ERROR" />
+    <logger name="org.hibernate" level="ERROR" />
+    <logger name="org.springframework" level="INFO" />
+    <logger name="org.springframework.orm" level="ERROR" />
+    <logger name="org.springframework.jdbc" level="ERROR" />
+    <logger name="org.springframework.scheduling" level="INFO" />
+    <logger name="org.springframework.data.redis" level="INFO" />
+    <logger name="org.springframework.session" level="INFO" />
+    <logger name="org.springframework.beans.factory.support" level="INFO" />
+    <logger name="springfox.documentation" level="ERROR" />
+    <logger name="com.querydsl.jpa.impl.JPAQuery" level="ERROR" />
+    <logger name="xenqtt" level="INFO" />
+    <logger name="io.lettuce" level="ERROR"/>
+    <logger name="io.netty.util.internal" level="ERROR"/>
+    <logger name="io.micrometer.shaded.io.netty.util.internal" level="ERROR"/>
+
+    <springProfile name="dev">
+        <root level="DEBUG">
+            <appender-ref ref="STDOUT"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="!dev">
+        <root level="DEBUG">
+            <appender-ref ref="JSON"/>
+            <appender-ref ref="Bugsnag"/>
+        </root>
+    </springProfile>
+</configuration>

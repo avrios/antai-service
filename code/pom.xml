@@ -17,7 +17,7 @@
 
     <properties>
         <!-- internal dependency versions -->
-        <girders.version>21</girders.version>
+        <girders.version>23</girders.version>
 
         <!-- plugin versions -->
         <build-helper-maven-plugin.version>3.2.0</build-helper-maven-plugin.version>
@@ -34,6 +34,13 @@
                 <groupId>com.avrios.blueprint</groupId>
                 <artifactId>bp-api</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+
+            <!-- Avrios Girders -->
+            <dependency>
+                <groupId>com.avrios.girders</groupId>
+                <artifactId>common</artifactId>
+                <version>${girders.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
