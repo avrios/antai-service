@@ -14,7 +14,7 @@ import * as uuid from 'uuid';
 
 import { Stage } from 'avr-cdk-utils';
 
-class FargateStackNaming {
+class FargateServiceNaming {
     readonly shortName: string;
     readonly serviceName: string;
     readonly stageAwareServiceName: string;
@@ -22,7 +22,7 @@ class FargateStackNaming {
     constructor(shortName: string, stage: Stage) {
         this.shortName = shortName;
         this.serviceName = `${shortName}-service`;
-        this.stageAwareServiceName = `${stage.identifier}-${this.shortName}-app`;
+        this.stageAwareServiceName = `${stage.identifier}-${this.shortName}-fargate`;
     }
 }
 
@@ -42,7 +42,7 @@ export interface FargateContainerProps {
     readonly memoryMultiplier?: number;
 }
 
-export interface FargateStackProps {
+export interface FargateServiceProps {
     readonly containerPort?: number;
     readonly taskContainerProps?: FargateContainerProps;
     readonly jdkJavaOptions?: string[];
@@ -63,7 +63,7 @@ interface CompleteFargateStackProps {
     readonly taskHealthCheckGracePeriod: number;
 }
 
-export class FargateStack extends cdk.Stack {
+export class AvrFargateService extends cdk.Construct {
     private static readonly DEFAULT_CONTAINER_PORT = 8080;
     private static readonly DEFAULT_LOGS_AGENT_HOST = 'http-intake.logs.datadoghq.eu';
     private static readonly DEFAULT_HEALTH_CHECK_GRACE_PERIOD = 60;
@@ -76,17 +76,17 @@ export class FargateStack extends cdk.Stack {
     public readonly loadBalancedFargateService: ecsPatterns.ApplicationLoadBalancedFargateService;
 
     private readonly stage: Stage;
-    private readonly stackNaming: FargateStackNaming;
+    private readonly serviceNaming: FargateServiceNaming;
     private readonly defaultedStackProps: CompleteFargateStackProps;
 
-    constructor(scope: cdk.Construct, serviceShortName: string, stage: Stage, repository: ecr.Repository, stackProps?: FargateStackProps) {
-        const stackNaming = new FargateStackNaming(serviceShortName, stage);
-        super(scope, stackNaming.stageAwareServiceName, { env: stage.env });
+    constructor(scope: cdk.Stack, serviceShortName: string, stage: Stage, repository: ecr.Repository, stackProps?: FargateServiceProps) {
+        const serviceNaming = new FargateServiceNaming(serviceShortName, stage);
+        super(scope, serviceNaming.stageAwareServiceName);
 
-        this.stackNaming = stackNaming;
+        this.serviceNaming = serviceNaming;
         this.stage = stage;
 
-        this.defaultedStackProps = FargateStack.defaultMissingValues(stackProps);
+        this.defaultedStackProps = AvrFargateService.defaultMissingValues(stackProps);
 
         this.image = new ecs.TagParameterContainerImage(repository);
         this.loadBalancedFargateService = this.createFargateService();
@@ -95,8 +95,6 @@ export class FargateStack extends cdk.Stack {
         this.setupRoutingRule();
 
         this.setupApiGwRouting();
-
-        cdk.Tags.of(this).add('env', this.stage.identifier);
     }
 
     private createFargateService(): ecsPatterns.ApplicationLoadBalancedFargateService {
@@ -106,7 +104,7 @@ export class FargateStack extends cdk.Stack {
         const datadogApiKey = ssm.StringParameter.valueForStringParameter(this, `/${this.stage.identifier}/datadog/apikey`);
         const defaultJavaOptions = this.compileDefaultJavaOptions(this.defaultedStackProps.jdkJavaOptions);
 
-        const containerDefinition = taskDefinition.addContainer(this.stackNaming.serviceName, {
+        const containerDefinition = taskDefinition.addContainer(this.serviceNaming.serviceName, {
             image: this.image,
             logging: this.setupFirelensLogs(datadogApiKey),
             environment: {
@@ -115,10 +113,10 @@ export class FargateStack extends cdk.Stack {
                 'DD_JMXFETCH_ENABLED': 'true',
                 'DD_LOGS_INJECTION': 'true',
                 'DD_PROFILING_ENABLED': 'true',
-                'DD_SERVICE_MAPPING': `${this.stackNaming.shortName}:${this.stackNaming.serviceName}`,
+                'DD_SERVICE_MAPPING': `${this.serviceNaming.shortName}:${this.serviceNaming.serviceName}`,
                 'DD_TRACE_ANALYTICS_ENABLED': 'true'
             },
-            memoryReservationMiB: this.defaultedStackProps.taskContainerProps.memory * FargateStack.DEFAULT_MAX_RAM_PERCENTAGE
+            memoryReservationMiB: this.defaultedStackProps.taskContainerProps.memory * AvrFargateService.DEFAULT_MAX_RAM_PERCENTAGE
         });
 
         containerDefinition.addPortMappings({
@@ -127,8 +125,8 @@ export class FargateStack extends cdk.Stack {
 
         this.setupMonitoring(taskDefinition, datadogApiKey);
 
-        const fargateService = new ecsPatterns.ApplicationLoadBalancedFargateService(this, this.stackNaming.stageAwareServiceName, {
-            serviceName: this.stackNaming.serviceName,
+        const fargateService = new ecsPatterns.ApplicationLoadBalancedFargateService(this, this.serviceNaming.stageAwareServiceName, {
+            serviceName: this.serviceNaming.serviceName,
             cluster,
             taskDefinition,
             healthCheckGracePeriod: cdk.Duration.seconds(this.defaultedStackProps.taskHealthCheckGracePeriod),
@@ -182,7 +180,7 @@ export class FargateStack extends cdk.Stack {
                 'DD_DOGSTATSD_NON_LOCAL_TRAFFIC': 'true',
                 'DD_DOGSTATSD_TAGS': `["env:${this.stage.identifier}"]`,
                 'DD_ENV': this.stage.identifier,
-                'DD_SERVICE': this.stackNaming.serviceName,
+                'DD_SERVICE': this.serviceNaming.serviceName,
                 'DD_SITE': 'datadoghq.eu',
                 'DD_VERSION': `${this.retrieveImageTag()}`,
                 'ECS_FARGATE': 'true'
@@ -223,7 +221,7 @@ export class FargateStack extends cdk.Stack {
         return ecs.LogDriver.awsLogs({
             streamPrefix: `${logGroupName}-${this.stage.identifier}`,
             logGroup: new logs.LogGroup(this, `${logGroupName}-log-group`, {
-                logGroupName: `${logGroupName}-${this.stackNaming.stageAwareServiceName}`,
+                logGroupName: `${this.serviceNaming.stageAwareServiceName}-${logGroupName}`,
                 retention: logs.RetentionDays.FIVE_DAYS,
                 removalPolicy: cdk.RemovalPolicy.DESTROY
             })
@@ -246,7 +244,7 @@ export class FargateStack extends cdk.Stack {
                 'enable-ecs-log-metadata': 'true',
                 'apiKey': datadogApiKey,
                 'provider': 'ecs',
-                'dd_service': this.stackNaming.serviceName,
+                'dd_service': this.serviceNaming.serviceName,
                 'Host': this.defaultedStackProps.logsAgentHost,
                 'TLS': 'on',
                 'dd_source': 'java',
@@ -268,7 +266,7 @@ export class FargateStack extends cdk.Stack {
 
     private configureTargetGroup(): void {
         this.loadBalancedFargateService.targetGroup.configureHealthCheck({
-            path: `/${this.stackNaming.shortName}/healthCheck`,
+            path: `/${this.serviceNaming.shortName}/healthCheck`,
             port: `${this.defaultedStackProps.containerPort}`,
             healthyThresholdCount: 2,
             unhealthyThresholdCount: 8,
@@ -283,11 +281,11 @@ export class FargateStack extends cdk.Stack {
     private setupRoutingRule(): void {
         const httpListener = this.fetchHttpListener();
 
-        new elbv2.ApplicationListenerRule(this, `${this.stackNaming.serviceName}-forward-rule-${this.stage.identifier}`, {
+        new elbv2.ApplicationListenerRule(this, `${this.serviceNaming.serviceName}-forward-rule-${this.stage.identifier}`, {
             listener: httpListener,
-            priority: 10,
+            priority: 11,
             action: elbv2.ListenerAction.forward([this.loadBalancedFargateService.targetGroup]),
-            conditions: [elbv2.ListenerCondition.pathPatterns([`/${this.stackNaming.shortName}/*`])]
+            conditions: [elbv2.ListenerCondition.pathPatterns([`/${this.serviceNaming.shortName}/*`])]
         });
     }
 
@@ -304,7 +302,7 @@ export class FargateStack extends cdk.Stack {
 
         this.addProxyResource(api.root);
 
-        const description = `Deployment triggered by: ${this.stackNaming.shortName}`;
+        const description = `Deployment triggered by: ${this.serviceNaming.shortName}`;
         const deployment = new apiGw.Deployment(this, `gateway-deployment-${uuid.v4()}`, { api, description });
 
         // @ts-ignore Setting this property allows us to release against an existing stage despite cdk not properly supporting it.
@@ -319,7 +317,7 @@ export class FargateStack extends cdk.Stack {
     }
 
     private addProxyResource(rootResource: apiGw.IResource): void {
-        const serviceResource = rootResource.addResource(this.stackNaming.shortName);
+        const serviceResource = rootResource.addResource(this.serviceNaming.shortName);
 
         const proxyResource = serviceResource.addResource('{proxy+}', {
             defaultCorsPreflightOptions: {
@@ -334,7 +332,7 @@ export class FargateStack extends cdk.Stack {
 
         const integration = new apiGw.Integration({
             type: apiGw.IntegrationType.HTTP_PROXY,
-            uri: this.getAlbUrl(this.stackNaming.shortName),
+            uri: this.getAlbUrl(this.serviceNaming.shortName),
             integrationHttpMethod: 'ANY',
             options: {
                 cacheKeyParameters: ['method.request.path.proxy'],
@@ -366,15 +364,15 @@ export class FargateStack extends cdk.Stack {
         return `http://${this.stage.getAlbDns()}/${contextName}/{proxy}`;
     }
 
-    private static defaultMissingValues(stackProps: FargateStackProps | undefined): CompleteFargateStackProps {
-        const taskContainerProps = FargateStack.completeContainerProps(stackProps?.taskContainerProps);
+    private static defaultMissingValues(stackProps: FargateServiceProps | undefined): CompleteFargateStackProps {
+        const taskContainerProps = AvrFargateService.completeContainerProps(stackProps?.taskContainerProps);
 
-        const containerPort = stackProps?.containerPort ? stackProps?.containerPort : FargateStack.DEFAULT_CONTAINER_PORT;
-        const logsAgentHost = stackProps?.logsAgentHost ? stackProps?.logsAgentHost : FargateStack.DEFAULT_LOGS_AGENT_HOST;
+        const containerPort = stackProps?.containerPort ? stackProps?.containerPort : AvrFargateService.DEFAULT_CONTAINER_PORT;
+        const logsAgentHost = stackProps?.logsAgentHost ? stackProps?.logsAgentHost : AvrFargateService.DEFAULT_LOGS_AGENT_HOST;
         const jdkJavaOptions = stackProps?.jdkJavaOptions ? stackProps?.jdkJavaOptions : [];
         const taskHealthCheckGracePeriod = stackProps?.taskHealthCheckGracePeriod ?
             stackProps?.taskHealthCheckGracePeriod :
-            FargateStack.DEFAULT_HEALTH_CHECK_GRACE_PERIOD;
+            AvrFargateService.DEFAULT_HEALTH_CHECK_GRACE_PERIOD;
 
         return {
             containerPort,
@@ -386,8 +384,8 @@ export class FargateStack extends cdk.Stack {
     }
 
     private static completeContainerProps(taskContainer: FargateContainerProps | undefined): CompleteFargateContainerProps {
-        const cpuMultiplier = taskContainer?.cpuMultiplier ? taskContainer?.cpuMultiplier : FargateStack.DEFAULT_CPU_MULTIPLIER;
-        const memoryMultiplier = taskContainer?.memoryMultiplier ? taskContainer?.memoryMultiplier : FargateStack.DEFAULT_MEMORY_MULTIPLIER;
+        const cpuMultiplier = taskContainer?.cpuMultiplier ? taskContainer?.cpuMultiplier : AvrFargateService.DEFAULT_CPU_MULTIPLIER;
+        const memoryMultiplier = taskContainer?.memoryMultiplier ? taskContainer?.memoryMultiplier : AvrFargateService.DEFAULT_MEMORY_MULTIPLIER;
         const cpu = cpuMultiplier * 1024;
         const memory = memoryMultiplier * cpu;
         return {
@@ -401,9 +399,9 @@ export class FargateStack extends cdk.Stack {
         defaultJavaOptions.push(`-Djasypt.encryptor.password=${password}`);
 
         defaultJavaOptions.push(`-Dspring.profiles.active=${this.stage.identifier}`);
-        defaultJavaOptions.push(`-Dcom.avrios.service.name=${this.stackNaming.serviceName}`);
+        defaultJavaOptions.push(`-Dcom.avrios.service.name=${this.serviceNaming.serviceName}`);
         defaultJavaOptions.push(`-XX:+UseThreadPriorities`);
-        defaultJavaOptions.push(`-XX:MaxRAMPercentage=${FargateStack.DEFAULT_MAX_RAM_PERCENTAGE * 100}`);
+        defaultJavaOptions.push(`-XX:MaxRAMPercentage=${AvrFargateService.DEFAULT_MAX_RAM_PERCENTAGE * 100}`);
 
         return defaultJavaOptions.map(option => `${option.trim()}`).join(' ');
     }

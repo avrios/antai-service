@@ -11,13 +11,9 @@ import * as codebuild from '@aws-cdk/aws-codebuild';
 import * as codepipeline from '@aws-cdk/aws-codepipeline';
 import * as actions from '@aws-cdk/aws-codepipeline-actions';
 
-import { FargateStack, FargateStackProps } from './fargate-stack';
+import { AvrFargateService, FargateServiceProps } from './avr-fargate-service';
 import { Stage } from 'avr-cdk-utils';
-import {
-    MAIN_BRANCH,
-    APPROVAL_NOTIFY_EMAILS,
-    CODE_BUILD_COMPUTE_TYPE
-} from './project-settings'
+import { APPROVAL_NOTIFY_EMAILS, CODE_BUILD_COMPUTE_TYPE, MAIN_BRANCH } from './project-settings'
 
 export class CiCdStack extends cdk.Stack {
     /**
@@ -50,7 +46,7 @@ export class CiCdStack extends cdk.Stack {
      * @param gitRepositoryName  Repository name without github and owner prefix
      */
     constructor(scope: cdk.Construct, internalShortName: string, gitRepositoryName: string) {
-        super(scope, `${internalShortName}-cicd`, { env: Stage.TEST.env });
+        super(scope, `${internalShortName}-cicd`, {env: Stage.TEST.env});
 
         this.internalShortName = internalShortName;
         this.gitRepositoryName = gitRepositoryName;
@@ -58,9 +54,9 @@ export class CiCdStack extends cdk.Stack {
         this.ecrRepository = this.setupEcrRepository();
         this.codeBuildCache = this.setupCodeBuildCache();
 
-        this.createStack(scope, Stage.TEST, this.ecrRepository, { taskContainerProps: { cpuMultiplier: 0.5 }});
-        this.createStack(scope, Stage.STAGING, this.ecrRepository);
-        this.createStack(scope, Stage.PROD, this.ecrRepository);
+        this.createApplicationStack(scope, Stage.TEST, this.ecrRepository, { taskContainerProps: { cpuMultiplier: 0.5 }});
+        this.createApplicationStack(scope, Stage.STAGING, this.ecrRepository);
+        this.createApplicationStack(scope, Stage.PROD, this.ecrRepository);
 
         const encryptionKey = kms.Key.fromKeyArn(this, 'code-pipeline-artifact-key', CiCdStack.ENCRYPTION_KEY_ARN);
 
@@ -133,9 +129,16 @@ export class CiCdStack extends cdk.Stack {
         return repository;
     }
 
-    private createStack(scope: cdk.Construct, stage: Stage, repository: ecr.Repository, stackProps?: FargateStackProps) {
-        const fargateStack = new FargateStack(scope, this.internalShortName, stage, repository, stackProps);
-        this.serviceImage[stage.identifier] = fargateStack.image;
+    private createApplicationStack(scope: cdk.Construct, stage: Stage, repository: ecr.Repository, serviceProps?: FargateServiceProps) {
+        const stack = new cdk.Stack(scope, `${stage.identifier}-${this.internalShortName}-app`, {
+            env: stage.env,
+            description: `Application stack for ${this.internalShortName} on ${stage.identifier}.`,
+            stackName: `${stage.identifier}-${this.internalShortName}-app`
+        });
+
+        const fargateService = new AvrFargateService(stack, this.internalShortName, stage, repository, serviceProps);
+        this.serviceImage[stage.identifier] = fargateService.image;
+        cdk.Tags.of(stack).add('env', stage.identifier);
     }
 
     private setupCodeBuildCache(): codebuild.Cache {
