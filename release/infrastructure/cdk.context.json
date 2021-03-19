@@ -1,6 +1,4 @@
 {
-  "assume-role-credentials:writeIamRoleName": "cdk-full-write-access",
-  "assume-role-credentials:readIamRoleName": "cdk-full-read-access",
   "vpc-provider:account=821747761766:filter.vpc-id=vpc-61c2f40a:region=eu-central-1:returnAsymmetricSubnets=true": {
     "vpcId": "vpc-61c2f40a",
     "vpcCidrBlock": "172.31.0.0/16",
@@ -27,6 +25,37 @@
             "cidr": "172.31.0.0/20",
             "availabilityZone": "eu-central-1c",
             "routeTableId": "rtb-dbe14ab1"
+          }
+        ]
+      }
+    ]
+  },
+  "vpc-provider:account=541825097226:filter.vpc-id=vpc-98aa7df2:region=eu-central-1:returnAsymmetricSubnets=true": {
+    "vpcId": "vpc-98aa7df2",
+    "vpcCidrBlock": "172.31.0.0/16",
+    "availabilityZones": [],
+    "subnetGroups": [
+      {
+        "name": "Public",
+        "type": "Public",
+        "subnets": [
+          {
+            "subnetId": "subnet-c157e8ab",
+            "cidr": "172.31.16.0/20",
+            "availabilityZone": "eu-central-1a",
+            "routeTableId": "rtb-96632afc"
+          },
+          {
+            "subnetId": "subnet-114ca66d",
+            "cidr": "172.31.32.0/20",
+            "availabilityZone": "eu-central-1b",
+            "routeTableId": "rtb-96632afc"
+          },
+          {
+            "subnetId": "subnet-9f4fb6d3",
+            "cidr": "172.31.0.0/20",
+            "availabilityZone": "eu-central-1c",
+            "routeTableId": "rtb-96632afc"
           }
         ]
       }
