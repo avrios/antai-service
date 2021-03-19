@@ -12,10 +12,15 @@ import * as codepipeline from '@aws-cdk/aws-codepipeline';
 import * as actions from '@aws-cdk/aws-codepipeline-actions';
 
 import { AvrFargateService, FargateServiceProps } from './avr-fargate-service';
-import { Stage } from 'avr-cdk-utils';
+import { Stage, AwsAccount } from 'avr-cdk-utils';
 import { APPROVAL_NOTIFY_EMAILS, CODE_BUILD_COMPUTE_TYPE, MAIN_BRANCH } from './project-settings'
 
 export class CiCdStack extends cdk.Stack {
+    /**
+     * Build image used by the code build projects.
+     */
+    private static readonly CODE_BUILD_IMAGE = codebuild.LinuxBuildImage.STANDARD_5_0;
+
     /**
      * Location of the github token in the AWS Secret Manager.
      */
@@ -24,7 +29,7 @@ export class CiCdStack extends cdk.Stack {
     /**
      * Encryption key used to share code build artifacts.
      */
-    private static readonly ENCRYPTION_KEY_ARN = 'arn:aws:kms:eu-central-1:821747761766:key/656022f0-aa97-4c56-bb5f-db7d5a8f29b9';
+    private static readonly ENCRYPTION_KEY_ARN = 'arn:aws:kms:eu-central-1:917835067517:key/8113893a-07f6-46fa-a3b5-eada0d7c5444';
 
     /**
      * Pattern used to identify hotfix branches that are released to staging/prod.
@@ -46,13 +51,12 @@ export class CiCdStack extends cdk.Stack {
      * @param gitRepositoryName  Repository name without github and owner prefix
      */
     constructor(scope: cdk.Construct, internalShortName: string, gitRepositoryName: string) {
-        super(scope, `${internalShortName}-cicd`, {env: Stage.TEST.env});
+        super(scope, `${internalShortName}-cicd`, { env: AwsAccount.TOOLING.env });
 
         this.internalShortName = internalShortName;
         this.gitRepositoryName = gitRepositoryName;
 
         this.ecrRepository = this.setupEcrRepository();
-        this.codeBuildCache = this.setupCodeBuildCache();
 
         this.createApplicationStack(scope, Stage.TEST, this.ecrRepository, { taskContainerProps: { cpuMultiplier: 0.5 }});
         this.createApplicationStack(scope, Stage.STAGING, this.ecrRepository);
@@ -60,6 +64,7 @@ export class CiCdStack extends cdk.Stack {
 
         const encryptionKey = kms.Key.fromKeyArn(this, 'code-pipeline-artifact-key', CiCdStack.ENCRYPTION_KEY_ARN);
 
+        this.codeBuildCache = this.setupCodeBuildCache(encryptionKey);
         const s3SourceBucket = this.setupCodeBuildArtifactBucket(encryptionKey);
         const s3TargetBucket = this.setupCodePipelineArtifactBucket(encryptionKey);
 
@@ -73,19 +78,19 @@ export class CiCdStack extends cdk.Stack {
 
         this.setupCodePipelineForMainBranch(encryptionKey, s3TargetBucket);
 
-        cdk.Tags.of(this).add('env', Stage.TEST.identifier);
+        cdk.Tags.of(this).add('env', AwsAccount.TOOLING.identifier);
     }
 
     private setupCodeBuildArtifactBucket(encryptionKey: kms.IKey): s3.IBucket {
-        return s3.Bucket.fromBucketAttributes(this, 'avr-cicd-codebuild-artifacts', {
-            bucketArn: 'arn:aws:s3:::avr-cicd-codebuild-artifacts',
+        return s3.Bucket.fromBucketAttributes(this, 'avr-awscodebuild-artifacts', {
+            bucketArn: 'arn:aws:s3:::avr-awscodebuild-artifacts',
             encryptionKey
         });
     }
 
     private setupCodePipelineArtifactBucket(encryptionKey: kms.IKey): s3.IBucket {
-        return s3.Bucket.fromBucketAttributes(this, 'avr-cicd-pipeline-artifacts', {
-            bucketArn: 'arn:aws:s3:::avr-cicd-pipeline-artifacts',
+        return s3.Bucket.fromBucketAttributes(this, 'avr-awscodepipeline-artifacts', {
+            bucketArn: 'arn:aws:s3:::avr-awscodepipeline-artifacts',
             encryptionKey
         });
     }
@@ -105,7 +110,9 @@ export class CiCdStack extends cdk.Stack {
                     "Effect": "ALLOW",
                     "Principal": {
                         "AWS": [
-                            "arn:aws:iam::324932872368:root"
+                            "arn:aws:iam::" + Stage.TEST.env.account + ":root",
+                            "arn:aws:iam::" + Stage.STAGING.env.account + ":root",
+                            "arn:aws:iam::" + Stage.PROD.env.account + ":root"
                         ]
                     },
                     "Action": [
@@ -130,20 +137,25 @@ export class CiCdStack extends cdk.Stack {
     }
 
     private createApplicationStack(scope: cdk.Construct, stage: Stage, repository: ecr.Repository, serviceProps?: FargateServiceProps) {
-        const stack = new cdk.Stack(scope, `${stage.identifier}-${this.internalShortName}-app`, {
+        const stackName = `${stage.identifier}-${this.internalShortName}-app`;
+        const stack = new cdk.Stack(scope, stackName, {
             env: stage.env,
             description: `Application stack for ${this.internalShortName} on ${stage.identifier}.`,
-            stackName: `${stage.identifier}-${this.internalShortName}-app`
+            stackName
         });
 
         const fargateService = new AvrFargateService(stack, this.internalShortName, stage, repository, serviceProps);
         this.serviceImage[stage.identifier] = fargateService.image;
+
         cdk.Tags.of(stack).add('env', stage.identifier);
     }
 
-    private setupCodeBuildCache(): codebuild.Cache {
+    private setupCodeBuildCache(encryptionKey: kms.IKey): codebuild.Cache {
         // add a cache for build artifact (maven or npm dependencies, angular artifacts), used by our codebuild projects
-        const s3Cache = s3.Bucket.fromBucketArn(this, 'avr-cicd-cache', 'arn:aws:s3:::avr-cicd-cache');
+        const s3Cache = s3.Bucket.fromBucketAttributes(this, 'avr-awscodebuild-cache', {
+            bucketArn: 'arn:aws:s3:::avr-awscodebuild-cache',
+            encryptionKey
+        });
         return codebuild.Cache.bucket(s3Cache, { prefix: this.internalShortName });
     }
 
@@ -154,10 +166,11 @@ export class CiCdStack extends cdk.Stack {
             description: `${this.internalShortName}: feature branches`,
             badge: false,
             environment: {
-                buildImage: codebuild.LinuxBuildImage.STANDARD_4_0,
+                buildImage: CiCdStack.CODE_BUILD_IMAGE,
                 computeType: CODE_BUILD_COMPUTE_TYPE,
                 privileged: true,
                 environmentVariables: {
+                    'CODE_ARTIFACT_ACCOUNT': this.getCodeArtifactAccountForCodeBuild(),
                     'REPOSITORY_URI': { type: codebuild.BuildEnvironmentVariableType.PLAINTEXT, value: this.ecrRepository.repositoryUri },
                     'RELEASE_VERSION_PREFIX': { type: codebuild.BuildEnvironmentVariableType.PLAINTEXT, value: 'FEATURE-' },
                     'RELEASE_VERSION_POSTFIX': { type: codebuild.BuildEnvironmentVariableType.PLAINTEXT, value: '-SNAPSHOT' }
@@ -197,10 +210,11 @@ export class CiCdStack extends cdk.Stack {
             description: `${this.internalShortName}: hotfix branches`,
             badge: false,
             environment: {
-                buildImage: codebuild.LinuxBuildImage.STANDARD_4_0,
+                buildImage: CiCdStack.CODE_BUILD_IMAGE,
                 computeType: CODE_BUILD_COMPUTE_TYPE,
                 privileged: true,
                 environmentVariables: {
+                    'CODE_ARTIFACT_ACCOUNT': this.getCodeArtifactAccountForCodeBuild(),
                     'REPOSITORY_URI': { type: codebuild.BuildEnvironmentVariableType.PLAINTEXT, value: this.ecrRepository.repositoryUri },
                     'RELEASE_VERSION_PREFIX': { type: codebuild.BuildEnvironmentVariableType.PLAINTEXT, value: 'HOTFIX-' },
                     'RELEASE_VERSION_POSTFIX': { type: codebuild.BuildEnvironmentVariableType.PLAINTEXT, value: '' }
@@ -230,6 +244,33 @@ export class CiCdStack extends cdk.Stack {
         });
 
         this.updateCodeBuildProjectPermissions(codeBuildProject);
+    }
+
+    private setupCodeBuildPipelineProject(encryptionKey: kms.IKey): codebuild.PipelineProject {
+        // only alphanumeric characters, dash and underscore are supported
+        const projectName = `${this.internalShortName}-${MAIN_BRANCH.replace(/[^\w]/gi, '-')}`;
+        const codeBuildProject = new codebuild.PipelineProject(this, `${projectName}-build`, {
+            projectName,
+            description: `${this.internalShortName}: ${MAIN_BRANCH} branch`,
+            environment: {
+                buildImage: CiCdStack.CODE_BUILD_IMAGE,
+                computeType: CODE_BUILD_COMPUTE_TYPE,
+                privileged: true,
+                environmentVariables: {
+                    'CODE_ARTIFACT_ACCOUNT': this.getCodeArtifactAccountForCodeBuild(),
+                    'REPOSITORY_URI': { type: codebuild.BuildEnvironmentVariableType.PLAINTEXT, value: this.ecrRepository.repositoryUri },
+                    'RELEASE_VERSION_PREFIX': { type: codebuild.BuildEnvironmentVariableType.PLAINTEXT, value: 'RELEASE-' },
+                    'RELEASE_VERSION_POSTFIX': { type: codebuild.BuildEnvironmentVariableType.PLAINTEXT, value: '' }
+                }
+            },
+            buildSpec: codebuild.BuildSpec.fromSourceFilename('.build/buildspec.yml'),
+            cache: this.codeBuildCache,
+            encryptionKey
+        });
+
+        this.updateCodeBuildProjectPermissions(codeBuildProject);
+
+        return codeBuildProject;
     }
 
     private setupCodePipelineForFeatureBranches(sourceBucket: s3.IBucket, targetBucket: s3.IBucket, artifactName: string): void {
@@ -342,7 +383,7 @@ export class CiCdStack extends cdk.Stack {
     private getDeployAction(stage: Stage, buildOutput: codepipeline.Artifact): actions.CloudFormationCreateUpdateStackAction {
         return new actions.CloudFormationCreateUpdateStackAction({
             actionName: `cfn-deploy-${stage.identifier}`,
-            stackName: `${stage.identifier}-${this.internalShortName}`,
+            stackName: `${stage.identifier}-${this.internalShortName}-app`,
             templatePath: buildOutput.atPath(`${stage.identifier}-${this.internalShortName}-app.template.json`),
             adminPermissions: true,
             parameterOverrides: {
@@ -351,32 +392,6 @@ export class CiCdStack extends cdk.Stack {
             extraInputs: [buildOutput],
             account: stage.env.account
         });
-    }
-
-    private setupCodeBuildPipelineProject(encryptionKey: kms.IKey): codebuild.PipelineProject {
-        // only alphanumeric characters, dash and underscore are supported
-        const projectName = `${this.internalShortName}-${MAIN_BRANCH.replace(/[^\w]/gi, '-')}`;
-        const codeBuildProject = new codebuild.PipelineProject(this, `${projectName}-build`, {
-            projectName,
-            description: `${this.internalShortName}: ${MAIN_BRANCH} branch`,
-            environment: {
-                buildImage: codebuild.LinuxBuildImage.STANDARD_4_0,
-                computeType: CODE_BUILD_COMPUTE_TYPE,
-                privileged: true,
-                environmentVariables: {
-                    'REPOSITORY_URI': { type: codebuild.BuildEnvironmentVariableType.PLAINTEXT, value: this.ecrRepository.repositoryUri },
-                    'RELEASE_VERSION_PREFIX': { type: codebuild.BuildEnvironmentVariableType.PLAINTEXT, value: 'RELEASE-' },
-                    'RELEASE_VERSION_POSTFIX': { type: codebuild.BuildEnvironmentVariableType.PLAINTEXT, value: '' }
-                }
-            },
-            buildSpec: codebuild.BuildSpec.fromSourceFilename('.build/buildspec.yml'),
-            cache: this.codeBuildCache,
-            encryptionKey
-        });
-
-        this.updateCodeBuildProjectPermissions(codeBuildProject);
-
-        return codeBuildProject;
     }
 
     private getGitHubAction(sourceArtifact: codepipeline.Artifact): actions.GitHubSourceAction {
@@ -428,5 +443,13 @@ export class CiCdStack extends cdk.Stack {
             actions: ['sts:GetServiceBearerToken'],
             resources: ['*'],
         }));
+    }
+
+    // TODO change to TOOLING when repos are migrated from avr-test to avr-tooling
+    private getCodeArtifactAccountForCodeBuild(): codebuild.BuildEnvironmentVariable {
+        return { 
+            type: codebuild.BuildEnvironmentVariableType.PLAINTEXT, 
+            value: Stage.TEST.env.account 
+        };
     }
 }

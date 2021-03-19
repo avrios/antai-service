@@ -16,7 +16,7 @@
 
     <properties>
         <!-- AWS tooling account that holds all build jobs, pipelines, repositories etc. -->
-        <aws.tools-account.profile>avr-dev</aws.tools-account.profile>
+        <aws.tools-account.profile>avr-tooling</aws.tools-account.profile>
     </properties>
 
     <build>

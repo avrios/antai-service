@@ -26,12 +26,14 @@
     "@aws-cdk/aws-elasticloadbalancingv2": "1.94.1",
     "@aws-cdk/aws-iam": "1.94.1",
     "@aws-cdk/aws-kms": "1.94.1",
+    "@aws-cdk/aws-lambda-event-sources": "1.94.1",
     "@aws-cdk/aws-logs": "1.94.1",
     "@aws-cdk/aws-s3": "1.94.1",
     "@aws-cdk/aws-sns": "1.94.1",
     "@aws-cdk/aws-ssm": "1.94.1",
     "@aws-cdk/core": "1.94.1",
-    "avr-cdk-utils": "0.6.2",
+    "avr-cdk-utils": "0.8.1",
+    "aws-sdk": "2.868.0",
     "uuid": "8.3.2"
   },
   "cdkAssumeRolePlugin": {

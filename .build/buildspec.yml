@@ -4,13 +4,15 @@ phases:
   install:
     runtime-versions:
       java: corretto11
-      nodejs: 10
+      nodejs: 14
+
   pre_build:
     commands:
-      - aws codeartifact login --tool npm --repository avrios-npm --domain avrios --domain-owner 821747761766
-      - export CODEARTIFACT_TOKEN=`aws codeartifact get-authorization-token --domain avrios --domain-owner 821747761766 --query authorizationToken --output text`
+      - aws codeartifact login --tool npm --repository avrios-npm --domain avrios --domain-owner ${CODE_ARTIFACT_ACCOUNT}
+      - export CODEARTIFACT_TOKEN=`aws codeartifact get-authorization-token --domain avrios --domain-owner ${CODE_ARTIFACT_ACCOUNT} --query authorizationToken --output text`
       - aws ecr get-login-password | docker login --username AWS --password-stdin ${REPOSITORY_URI}
       - RELEASE_VERSION=${RELEASE_VERSION_PREFIX}${CODEBUILD_BUILD_NUMBER}${RELEASE_VERSION_POSTFIX}
+
   build:
     commands:
       - mvn versions:set versions:update-child-modules -DnewVersion=${RELEASE_VERSION} -s .build/codeartifact.xml

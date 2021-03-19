@@ -28,13 +28,13 @@
                 <repository>
                     <id>avrios-releases</id>
                     <snapshots><enabled>false</enabled></snapshots>
-                    <url>https://avrios-821747761766.d.codeartifact.eu-central-1.amazonaws.com/maven/avrios-release/</url>
+                    <url>https://avrios-${env.CODE_ARTIFACT_ACCOUNT}.d.codeartifact.eu-central-1.amazonaws.com/maven/avrios-release/</url>
                 </repository>
 
                 <repository>
                     <id>avrios-snapshots</id>
                     <snapshots><enabled>true</enabled></snapshots>
-                    <url>https://avrios-821747761766.d.codeartifact.eu-central-1.amazonaws.com/maven/avrios-snapshot/</url>
+                    <url>https://avrios-${env.CODE_ARTIFACT_ACCOUNT}.d.codeartifact.eu-central-1.amazonaws.com/maven/avrios-snapshot/</url>
                 </repository>
             </repositories>
         </profile>
@@ -43,5 +43,4 @@
     <activeProfiles>
         <activeProfile>aws</activeProfile>
     </activeProfiles>
-
 </settings>
