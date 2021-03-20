@@ -36,6 +36,11 @@ export class CiCdStack extends cdk.Stack {
      */
     private static readonly HOTFIX_BRANCH_PATTERN = 'hotfix/*';
 
+    /**
+     * A commit message matching this pattern must not trigger a build.
+     */
+    private static readonly SKIP_CI_PATTERN = ".*(\\[skip ci\\]).*";
+
     private readonly serviceImage: {
         [key: string]: ecs.TagParameterContainerImage;
     } = {};
@@ -208,7 +213,8 @@ export class CiCdStack extends cdk.Stack {
                     webhookFilters: [
                         codebuild.FilterGroup.inEventOf(codebuild.EventAction.PUSH)
                             .andBranchIsNot(MAIN_BRANCH)
-                            .andBranchIsNot(CiCdStack.HOTFIX_BRANCH_PATTERN),
+                            .andBranchIsNot(CiCdStack.HOTFIX_BRANCH_PATTERN)
+                            .andCommitMessageIsNot(CiCdStack.SKIP_CI_PATTERN)
                     ],
                     cloneDepth: 1
             }),
@@ -252,6 +258,7 @@ export class CiCdStack extends cdk.Stack {
                 webhookFilters: [
                     codebuild.FilterGroup.inEventOf(codebuild.EventAction.PUSH)
                         .andBranchIs(CiCdStack.HOTFIX_BRANCH_PATTERN)
+                        .andCommitMessageIsNot(CiCdStack.SKIP_CI_PATTERN)
                 ],
                 cloneDepth: 1
             }),
