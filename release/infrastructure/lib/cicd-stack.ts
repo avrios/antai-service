@@ -98,6 +98,27 @@ export class CiCdStack extends cdk.Stack {
     private setupEcrRepository(): ecr.Repository {
         const repositoryName = this.internalShortName;
         const repository = new ecr.Repository(this, `${this.internalShortName}-ecr`, { repositoryName });
+        
+        repository.addLifecycleRule({
+            rulePriority: 1,
+            description: 'Remove RELEASE images',
+            tagPrefixList: ['RELEASE-'],
+            maxImageCount: 5
+        });
+
+        repository.addLifecycleRule({
+            rulePriority: 2,
+            description: 'Remove HOTFIX images',
+            tagPrefixList: ['HOTFIX-'],
+            maxImageCount: 5
+        });
+
+        repository.addLifecycleRule({
+            rulePriority: 3,
+            description: 'Remove FEATURE images',
+            tagPrefixList: ['FEATURE-'],
+            maxImageAge: cdk.Duration.days(5)
+        });
 
         const cfnRepository = repository.node.defaultChild as ecr.CfnRepository;
         // CDK - when left on its own - happens to create a repository policy that is invalid. As a workaround, we
