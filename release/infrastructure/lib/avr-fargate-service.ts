@@ -77,7 +77,7 @@ export class AvrFargateService extends cdk.Construct {
 
     private readonly stage: Stage;
     private readonly serviceNaming: FargateServiceNaming;
-    private readonly defaultedStackProps: CompleteFargateStackProps;
+    private readonly stackProps: CompleteFargateStackProps;
 
     constructor(scope: cdk.Stack, serviceShortName: string, stage: Stage, repository: ecr.Repository, stackProps?: FargateServiceProps) {
         const serviceNaming = new FargateServiceNaming(serviceShortName, stage);
@@ -86,7 +86,7 @@ export class AvrFargateService extends cdk.Construct {
         this.serviceNaming = serviceNaming;
         this.stage = stage;
 
-        this.defaultedStackProps = AvrFargateService.defaultMissingValues(stackProps);
+        this.stackProps = AvrFargateService.defaultMissingValues(stackProps);
 
         this.image = new ecs.TagParameterContainerImage(repository);
         this.loadBalancedFargateService = this.createFargateService();
@@ -102,7 +102,7 @@ export class AvrFargateService extends cdk.Construct {
         const taskDefinition = this.createTaskDefinition();
 
         const datadogApiKey = ssm.StringParameter.valueForStringParameter(this, `/${this.stage.identifier}/datadog/apikey`);
-        const defaultJavaOptions = this.compileDefaultJavaOptions(this.defaultedStackProps.jdkJavaOptions);
+        const defaultJavaOptions = this.compileDefaultJavaOptions(this.stackProps.jdkJavaOptions);
 
         const containerDefinition = taskDefinition.addContainer(this.serviceNaming.serviceName, {
             image: this.image,
@@ -116,11 +116,11 @@ export class AvrFargateService extends cdk.Construct {
                 'DD_SERVICE_MAPPING': `${this.serviceNaming.shortName}:${this.serviceNaming.serviceName}`,
                 'DD_TRACE_ANALYTICS_ENABLED': 'true'
             },
-            memoryReservationMiB: this.defaultedStackProps.taskContainerProps.memory * AvrFargateService.DEFAULT_MAX_RAM_PERCENTAGE
+            memoryReservationMiB: this.stackProps.taskContainerProps.memory * AvrFargateService.DEFAULT_MAX_RAM_PERCENTAGE
         });
 
         containerDefinition.addPortMappings({
-            containerPort: this.defaultedStackProps.containerPort
+            containerPort: this.stackProps.containerPort
         });
 
         this.setupMonitoring(taskDefinition, datadogApiKey);
@@ -129,7 +129,7 @@ export class AvrFargateService extends cdk.Construct {
             serviceName: this.serviceNaming.serviceName,
             cluster,
             taskDefinition,
-            healthCheckGracePeriod: cdk.Duration.seconds(this.defaultedStackProps.taskHealthCheckGracePeriod),
+            healthCheckGracePeriod: cdk.Duration.seconds(this.stackProps.taskHealthCheckGracePeriod),
             desiredCount: 1,
             minHealthyPercent: 100,
             maxHealthyPercent: 200,
@@ -154,8 +154,8 @@ export class AvrFargateService extends cdk.Construct {
 
     private createTaskDefinition(): ecs.FargateTaskDefinition {
         return new ecs.FargateTaskDefinition(this, `taskdef-${this.stage.identifier}`, {
-            cpu: this.defaultedStackProps.taskContainerProps.cpu,
-            memoryLimitMiB: this.defaultedStackProps.taskContainerProps.memory,
+            cpu: this.stackProps.taskContainerProps.cpu,
+            memoryLimitMiB: this.stackProps.taskContainerProps.memory,
             executionRole: new iam.Role(this, `taskexec-${this.stage.identifier}`, {
                 roleName: cdk.PhysicalName.GENERATE_IF_NEEDED,
                 assumedBy: new iam.CompositePrincipal(
@@ -231,7 +231,7 @@ export class AvrFargateService extends cdk.Construct {
                 'apiKey': datadogApiKey,
                 'provider': 'ecs',
                 'dd_service': this.serviceNaming.serviceName,
-                'Host': this.defaultedStackProps.logsAgentHost,
+                'Host': this.stackProps.logsAgentHost,
                 'TLS': 'on',
                 'dd_source': 'java',
                 'dd_tags': `env:${this.stage.identifier}`,
@@ -253,7 +253,7 @@ export class AvrFargateService extends cdk.Construct {
     private configureTargetGroup(): void {
         this.loadBalancedFargateService.targetGroup.configureHealthCheck({
             path: `/${this.serviceNaming.shortName}/healthCheck`,
-            port: `${this.defaultedStackProps.containerPort}`,
+            port: `${this.stackProps.containerPort}`,
             healthyThresholdCount: 2,
             unhealthyThresholdCount: 8,
             timeout: cdk.Duration.seconds(2),
