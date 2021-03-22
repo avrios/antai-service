@@ -13,14 +13,57 @@ import * as actions from '@aws-cdk/aws-codepipeline-actions';
 
 import { AvrFargateService, FargateServiceProps } from './avr-fargate-service';
 import { Stage, AwsAccount } from 'avr-cdk-utils';
-import { APPROVAL_NOTIFY_EMAILS, CODE_BUILD_COMPUTE_TYPE, MAIN_BRANCH } from './project-settings'
+
+export interface CiCdStackProps {
+    /**
+     * Short-hand name of the service. Omit the '-service' suffix. 
+     * Example: 'blueprint' instead of 'blueprint-service'.
+     */
+    readonly internalShortName: string;
+    
+    /**
+     * Repository name without github and owner prefix.
+     * Example: blueprint-service instead of 'https://github.com/avrios/blueprint-service'.
+     */
+    readonly gitRepositoryName: string;
+    
+    /**
+     * Name of the main branch. Defaults to 'main'.
+     */
+    readonly mainBranch?: string;
+
+    /**
+     * Build image used by the code build projects. See
+     * https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-codebuild.LinuxBuildImage.html
+     * Defaults to STANDARD_5_0.
+     */
+    readonly codeBuildImage?: codebuild.IBuildImage;
+    
+    /**
+     * Size of AWS CodeBuild instance to compile and build the docker image. See
+     * https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-codebuild.ComputeType.html
+     * Defaults to ComputeType.SMALL.
+     */
+    readonly codeBuildComputeType?: codebuild.ComputeType;
+
+    /**
+     * Defines who should get notified by email if an approval is needed before deployment.
+     * You can also manually subscribe to the SNS topic later.
+     * Defaults to an empty list of approvals.
+     */
+    readonly approvalNotifyEmails?: string[];
+}
+
+interface CompletedCiCdStackProps {
+    readonly internalShortName: string;
+    readonly gitRepositoryName: string;
+    readonly mainBranch: string;
+    readonly codeBuildImage: codebuild.IBuildImage;
+    readonly codeBuildComputeType: codebuild.ComputeType;
+    readonly approvalNotifyEmails: string[];
+}
 
 export class CiCdStack extends cdk.Stack {
-    /**
-     * Build image used by the code build projects.
-     */
-    private static readonly CODE_BUILD_IMAGE = codebuild.LinuxBuildImage.STANDARD_5_0;
-
     /**
      * Location of the github token in the AWS Secret Manager.
      */
@@ -45,21 +88,19 @@ export class CiCdStack extends cdk.Stack {
         [key: string]: ecs.TagParameterContainerImage;
     } = {};
 
-    private readonly internalShortName: string;
-    private readonly gitRepositoryName: string;
     private readonly ecrRepository: ecr.Repository;
     private readonly codeBuildCache: codebuild.Cache;
+    private readonly stackProps: CompletedCiCdStackProps;
 
     /**
      * @param scope Parent of this stack, usually an `App` or a `Stage`, but could be any construct
      * @param internalShortName Short-hand name of the service
      * @param gitRepositoryName  Repository name without github and owner prefix
      */
-    constructor(scope: cdk.Construct, internalShortName: string, gitRepositoryName: string) {
-        super(scope, `${internalShortName}-cicd`, { env: AwsAccount.TOOLING.env });
+    constructor(scope: cdk.Construct, stackProps: CiCdStackProps) {
+        super(scope, `${stackProps.internalShortName}-cicd`, { env: AwsAccount.TOOLING.env });
 
-        this.internalShortName = internalShortName;
-        this.gitRepositoryName = gitRepositoryName;
+        this.stackProps = CiCdStack.defaultMissingValues(stackProps);
 
         this.ecrRepository = this.setupEcrRepository();
 
@@ -101,8 +142,8 @@ export class CiCdStack extends cdk.Stack {
     }
 
     private setupEcrRepository(): ecr.Repository {
-        const repositoryName = this.internalShortName;
-        const repository = new ecr.Repository(this, `${this.internalShortName}-ecr`, { repositoryName });
+        const repositoryName = this.stackProps.internalShortName;
+        const repository = new ecr.Repository(this, `${this.stackProps.internalShortName}-ecr`, { repositoryName });
         
         repository.addLifecycleRule({
             rulePriority: 1,
@@ -163,14 +204,14 @@ export class CiCdStack extends cdk.Stack {
     }
 
     private createApplicationStack(scope: cdk.Construct, stage: Stage, repository: ecr.Repository, serviceProps?: FargateServiceProps) {
-        const stackName = `${stage.identifier}-${this.internalShortName}-app`;
+        const stackName = `${stage.identifier}-${this.stackProps.internalShortName}-app`;
         const stack = new cdk.Stack(scope, stackName, {
             env: stage.env,
-            description: `Application stack for ${this.internalShortName} on ${stage.identifier}.`,
+            description: `Application stack for ${this.stackProps.internalShortName} on ${stage.identifier}.`,
             stackName
         });
 
-        const fargateService = new AvrFargateService(stack, this.internalShortName, stage, repository, serviceProps);
+        const fargateService = new AvrFargateService(stack, this.stackProps.internalShortName, stage, repository, serviceProps);
         this.serviceImage[stage.identifier] = fargateService.image;
 
         cdk.Tags.of(stack).add('env', stage.identifier);
@@ -182,18 +223,18 @@ export class CiCdStack extends cdk.Stack {
             bucketArn: 'arn:aws:s3:::avr-awscodebuild-cache',
             encryptionKey
         });
-        return codebuild.Cache.bucket(s3Cache, { prefix: this.internalShortName });
+        return codebuild.Cache.bucket(s3Cache, { prefix: this.stackProps.internalShortName });
     }
 
     private setupCodeBuildForFeatureBranches(s3SourceBucket: s3.IBucket, artifactName: string): void {
-        const projectName = `${this.internalShortName}-feature`;
+        const projectName = `${this.stackProps.internalShortName}-feature`;
         const codeBuildProject = new codebuild.Project(this, `${projectName}-build`, {
             projectName,
-            description: `${this.internalShortName}: feature branches`,
+            description: `${this.stackProps.internalShortName}: feature branches`,
             badge: false,
             environment: {
-                buildImage: CiCdStack.CODE_BUILD_IMAGE,
-                computeType: CODE_BUILD_COMPUTE_TYPE,
+                buildImage: this.stackProps.codeBuildImage,
+                computeType: this.stackProps.codeBuildComputeType,
                 privileged: true,
                 environmentVariables: {
                     'CODE_ARTIFACT_ACCOUNT': this.getCodeArtifactAccountForCodeBuild(),
@@ -207,12 +248,12 @@ export class CiCdStack extends cdk.Stack {
             source: codebuild.Source.gitHub({
                     identifier: 'GitHub',
                     owner: 'avrios',
-                    repo: this.gitRepositoryName,
+                    repo: this.stackProps.gitRepositoryName,
                     webhook: true,
                     reportBuildStatus: true,
                     webhookFilters: [
                         codebuild.FilterGroup.inEventOf(codebuild.EventAction.PUSH)
-                            .andBranchIsNot(MAIN_BRANCH)
+                            .andBranchIsNot(this.stackProps.mainBranch)
                             .andBranchIsNot(CiCdStack.HOTFIX_BRANCH_PATTERN)
                             .andCommitMessageIsNot(CiCdStack.SKIP_CI_PATTERN)
                     ],
@@ -220,7 +261,7 @@ export class CiCdStack extends cdk.Stack {
             }),
             artifacts: codebuild.Artifacts.s3({
                 bucket: s3SourceBucket,
-                path: this.internalShortName,
+                path: this.stackProps.internalShortName,
                 name: artifactName,
                 packageZip: true,
                 includeBuildId: false
@@ -231,14 +272,14 @@ export class CiCdStack extends cdk.Stack {
     }
 
     private setupCodeBuildForHotfixBranches(s3SourceBucket: s3.IBucket, artifactName: string): void {
-        const projectName = `${this.internalShortName}-hotfix`;
+        const projectName = `${this.stackProps.internalShortName}-hotfix`;
         const codeBuildProject = new codebuild.Project(this, `${projectName}-build`, {
             projectName,
-            description: `${this.internalShortName}: hotfix branches`,
+            description: `${this.stackProps.internalShortName}: hotfix branches`,
             badge: false,
             environment: {
-                buildImage: CiCdStack.CODE_BUILD_IMAGE,
-                computeType: CODE_BUILD_COMPUTE_TYPE,
+                buildImage: this.stackProps.codeBuildImage,
+                computeType: this.stackProps.codeBuildComputeType,
                 privileged: true,
                 environmentVariables: {
                     'CODE_ARTIFACT_ACCOUNT': this.getCodeArtifactAccountForCodeBuild(),
@@ -252,7 +293,7 @@ export class CiCdStack extends cdk.Stack {
             source: codebuild.Source.gitHub({
                 identifier: 'GitHub',
                 owner: 'avrios',
-                repo: this.gitRepositoryName,
+                repo: this.stackProps.gitRepositoryName,
                 webhook: true,
                 reportBuildStatus: true,
                 webhookFilters: [
@@ -264,7 +305,7 @@ export class CiCdStack extends cdk.Stack {
             }),
             artifacts: codebuild.Artifacts.s3({
                 bucket: s3SourceBucket,
-                path: this.internalShortName,
+                path: this.stackProps.internalShortName,
                 name: artifactName,
                 packageZip: true,
                 includeBuildId: false
@@ -276,13 +317,13 @@ export class CiCdStack extends cdk.Stack {
 
     private setupCodeBuildPipelineProject(encryptionKey: kms.IKey): codebuild.PipelineProject {
         // only alphanumeric characters, dash and underscore are supported
-        const projectName = `${this.internalShortName}-${MAIN_BRANCH.replace(/[^\w]/gi, '-')}`;
+        const projectName = `${this.stackProps.internalShortName}-${this.stackProps.mainBranch.replace(/[^\w]/gi, '-')}`;
         const codeBuildProject = new codebuild.PipelineProject(this, `${projectName}-build`, {
             projectName,
-            description: `${this.internalShortName}: ${MAIN_BRANCH} branch`,
+            description: `${this.stackProps.internalShortName}: ${this.stackProps.mainBranch} branch`,
             environment: {
-                buildImage: CiCdStack.CODE_BUILD_IMAGE,
-                computeType: CODE_BUILD_COMPUTE_TYPE,
+                buildImage: this.stackProps.codeBuildImage,
+                computeType: this.stackProps.codeBuildComputeType,
                 privileged: true,
                 environmentVariables: {
                     'CODE_ARTIFACT_ACCOUNT': this.getCodeArtifactAccountForCodeBuild(),
@@ -304,8 +345,8 @@ export class CiCdStack extends cdk.Stack {
     private setupCodePipelineForFeatureBranches(sourceBucket: s3.IBucket, targetBucket: s3.IBucket, artifactName: string): void {
         const s3SourceArtifact = new codepipeline.Artifact();
 
-        const codePipeline = new codepipeline.Pipeline(this, `${this.internalShortName}-feature-pipeline`, {
-            pipelineName: `${this.internalShortName}-feature`,
+        const codePipeline = new codepipeline.Pipeline(this, `${this.stackProps.internalShortName}-feature-pipeline`, {
+            pipelineName: `${this.stackProps.internalShortName}-feature`,
             artifactBucket: targetBucket
         });
 
@@ -317,8 +358,8 @@ export class CiCdStack extends cdk.Stack {
     private setupCodePipelineForHotfixBranches(sourceBucket: s3.IBucket, targetBucket: s3.IBucket, artifactName: string): void {
         const s3SourceArtifact = new codepipeline.Artifact();
 
-        const codePipeline = new codepipeline.Pipeline(this, `${this.internalShortName}-hotfix-pipeline`, {
-            pipelineName: `${this.internalShortName}-hotfix`,
+        const codePipeline = new codepipeline.Pipeline(this, `${this.stackProps.internalShortName}-hotfix-pipeline`, {
+            pipelineName: `${this.stackProps.internalShortName}-hotfix`,
             artifactBucket: targetBucket
         });
 
@@ -338,8 +379,8 @@ export class CiCdStack extends cdk.Stack {
         const buildOutput = new codepipeline.Artifact();
         const artifactBucket = targetBucket;
 
-        const codePipeline = new codepipeline.Pipeline(this, `${this.internalShortName}-main-pipeline`, {
-            pipelineName: `${this.internalShortName}-main`,
+        const codePipeline = new codepipeline.Pipeline(this, `${this.stackProps.internalShortName}-main-pipeline`, {
+            pipelineName: `${this.stackProps.internalShortName}-main`,
             artifactBucket
         });
 
@@ -403,7 +444,7 @@ export class CiCdStack extends cdk.Stack {
         return new actions.S3SourceAction({
             actionName: 'SourceCodeCheckout',
             bucket: sourceBucket,
-            bucketKey: `${this.internalShortName}/${artifactName}`,
+            bucketKey: `${this.stackProps.internalShortName}/${artifactName}`,
             output: s3SourceArtifact
         });
     }
@@ -411,8 +452,8 @@ export class CiCdStack extends cdk.Stack {
     private getDeployAction(stage: Stage, buildOutput: codepipeline.Artifact): actions.CloudFormationCreateUpdateStackAction {
         return new actions.CloudFormationCreateUpdateStackAction({
             actionName: `cfn-deploy-${stage.identifier}`,
-            stackName: `${stage.identifier}-${this.internalShortName}-app`,
-            templatePath: buildOutput.atPath(`${stage.identifier}-${this.internalShortName}-app.template.json`),
+            stackName: `${stage.identifier}-${this.stackProps.internalShortName}-app`,
+            templatePath: buildOutput.atPath(`${stage.identifier}-${this.stackProps.internalShortName}-app.template.json`),
             adminPermissions: true,
             parameterOverrides: {
                 [this.serviceImage[stage.identifier].tagParameterName]: buildOutput.getParam('imagedefinitions.json', 'imageTag'),
@@ -430,8 +471,8 @@ export class CiCdStack extends cdk.Stack {
             output: sourceArtifact,
             oauthToken: secret,
             owner: 'avrios',
-            repo: this.gitRepositoryName,
-            branch: MAIN_BRANCH,
+            repo: this.stackProps.gitRepositoryName,
+            branch: this.stackProps.mainBranch,
             trigger: actions.GitHubTrigger.WEBHOOK
         });
     }
@@ -448,14 +489,14 @@ export class CiCdStack extends cdk.Stack {
     }
 
     private getManualApprovalAction(stage: Stage, notify: boolean): actions.ManualApprovalAction {
-        const info = `Manual approval for deploying ${this.internalShortName} to ${stage.getUpperCaseIdentifier()} needed.`;
+        const info = `Manual approval for deploying ${this.stackProps.internalShortName} to ${stage.getUpperCaseIdentifier()} needed.`;
         return new actions.ManualApprovalAction({
             actionName: `ManualApprovalFor${stage.getCapitalizedIdentifier()}`,
-            notificationTopic: notify ? new sns.Topic(this, `manual-approval-for-${this.internalShortName}-${stage.identifier}`, {
-                displayName: `manual-approval-for-${this.internalShortName}-${stage.identifier}`,
-                topicName: `manual-approval-for-${this.internalShortName}-${stage.identifier}`
+            notificationTopic: notify ? new sns.Topic(this, `manual-approval-for-${this.stackProps.internalShortName}-${stage.identifier}`, {
+                displayName: `manual-approval-for-${this.stackProps.internalShortName}-${stage.identifier}`,
+                topicName: `manual-approval-for-${this.stackProps.internalShortName}-${stage.identifier}`
             }) : undefined,
-            notifyEmails: notify ? APPROVAL_NOTIFY_EMAILS : undefined,
+            notifyEmails: notify ? this.stackProps.approvalNotifyEmails : undefined,
             additionalInformation: info
         });
     }
@@ -478,6 +519,21 @@ export class CiCdStack extends cdk.Stack {
         return { 
             type: codebuild.BuildEnvironmentVariableType.PLAINTEXT, 
             value: Stage.TEST.env.account 
+        };
+    }
+
+    private static defaultMissingValues(stackProps: CiCdStackProps): CompletedCiCdStackProps {
+        const mainBranch = stackProps.mainBranch ? stackProps.mainBranch : 'main';
+        const codeBuildImage = stackProps.codeBuildImage ? stackProps.codeBuildImage : codebuild.LinuxBuildImage.STANDARD_5_0;
+        const codeBuildComputeType = stackProps.codeBuildComputeType ? stackProps.codeBuildComputeType : codebuild.ComputeType.SMALL;
+        const approvalNotifyEmails = stackProps.approvalNotifyEmails ? stackProps.approvalNotifyEmails : [];
+        return {
+            internalShortName: stackProps.internalShortName,
+            gitRepositoryName: stackProps.gitRepositoryName,
+            mainBranch,
+            codeBuildImage,
+            codeBuildComputeType,
+            approvalNotifyEmails
         };
     }
 }
