@@ -73,7 +73,7 @@ export class AvrFargateService extends cdk.Construct {
     private static readonly DEFAULT_MAX_RAM_PERCENTAGE = 0.75;
 
     public readonly image: ecs.TagParameterContainerImage;
-    public readonly loadBalancedFargateService: ecsPatterns.ApplicationLoadBalancedFargateService;
+    public readonly fargateService: ecs.FargateService;
 
     private readonly stage: Stage;
     private readonly serviceNaming: FargateServiceNaming;
@@ -89,16 +89,19 @@ export class AvrFargateService extends cdk.Construct {
         this.stackProps = AvrFargateService.defaultMissingValues(stackProps);
 
         this.image = new ecs.TagParameterContainerImage(repository);
-        this.loadBalancedFargateService = this.createFargateService();
 
-        this.configureTargetGroup();
-        this.setupRoutingRule();
+        const vpc = ec2.Vpc.fromLookup(this, 'VPC', { vpcId: this.stage.vpcId });
+
+        this.fargateService = this.createFargateService(vpc);
+
+        const targetGroup = this.setupServiceTargetGroup(vpc);
+        this.setupRoutingRule(targetGroup);
 
         this.setupApiGwRouting();
     }
 
-    private createFargateService(): ecsPatterns.ApplicationLoadBalancedFargateService {
-        const cluster = this.fetchFargateCluster();
+    private createFargateService(vpc: ec2.IVpc): ecs.FargateService {
+        const cluster = this.fetchFargateCluster(vpc);
         const taskDefinition = this.createTaskDefinition();
 
         const datadogApiKey = ssm.StringParameter.valueForStringParameter(this, `/${this.stage.identifier}/datadog/apikey`);
@@ -125,31 +128,43 @@ export class AvrFargateService extends cdk.Construct {
 
         this.setupMonitoring(taskDefinition, datadogApiKey);
 
-        const fargateService = new ecsPatterns.ApplicationLoadBalancedFargateService(this, this.serviceNaming.stageAwareServiceName, {
+        const fargateService = new ecs.FargateService(this, this.serviceNaming.stageAwareServiceName, {
             serviceName: this.serviceNaming.serviceName,
             cluster,
             taskDefinition,
             healthCheckGracePeriod: cdk.Duration.seconds(this.stackProps.taskHealthCheckGracePeriod),
+            securityGroup: this.setServiceSecurityGroup(vpc),
+            assignPublicIp: true,
             desiredCount: 1,
             minHealthyPercent: 100,
             maxHealthyPercent: 200,
-            assignPublicIp: true,
-            publicLoadBalancer: true,
-            /** By default cdk needs to create a listener (¯\_(ツ)_/¯), we set this port because by default 80 is used
-             * which clashes with the application load balancer listener.
-             */
-            listenerPort: 1245,
-            loadBalancer: this.fetchLoadBalancer(cluster.vpc)
         });
 
         // allow applications in ECS cluster accessing our RDS instance
         const groupId = 'rds-security-group';
         const rdsSecurityGroup = ec2.SecurityGroup.fromSecurityGroupId(this, groupId, this.stage.rdsSecurityGroup);
-        fargateService.service.connections.securityGroups.forEach(securityGroup => {
+        fargateService.connections.securityGroups.forEach(securityGroup => {
             rdsSecurityGroup.connections.allowFrom(securityGroup, ec2.Port.tcp(5432), 'ECS Cluster for BE services')
         });
 
         return fargateService;
+    }
+
+    private setServiceSecurityGroup(vpc: ec2.IVpc): ec2.SecurityGroup {
+        const serviceSecurityGroup = new ec2.SecurityGroup(this, `security-group-${this.stage.identifier}`, {
+            securityGroupName: `${this.serviceNaming.serviceName}-sg`,
+            description: `Security group of ECS service: ${this.serviceNaming.serviceName}`,
+            vpc,
+            allowAllOutbound: true
+        });
+
+        const loadBalancerSecurityGroup = ec2.SecurityGroup.fromSecurityGroupId(this, `alb-security-group-${this.stage.identifier}`,
+            this.stage.getLoadBalancerSecurityGroupId());
+
+        serviceSecurityGroup.addIngressRule(loadBalancerSecurityGroup, ec2.Port.tcp(this.stackProps.containerPort),
+            'Load balancer to target.');
+
+        return serviceSecurityGroup;
     }
 
     private createTaskDefinition(): ecs.FargateTaskDefinition {
@@ -214,8 +229,7 @@ export class AvrFargateService extends cdk.Construct {
         });
     }
 
-    private fetchFargateCluster(): ecs.ICluster {
-        const vpc = ec2.Vpc.fromLookup(this, 'VPC', { vpcId: this.stage.vpcId });
+    private fetchFargateCluster(vpc: ec2.IVpc): ecs.ICluster {
         return ecs.Cluster.fromClusterAttributes(this, `service-cluster-${this.stage.identifier}`, {
             clusterName: this.stage.getServicesClusterName(),
             clusterArn: this.stage.getServicesClusterArn(),
@@ -240,37 +254,33 @@ export class AvrFargateService extends cdk.Construct {
         });
     }
 
-    private fetchLoadBalancer(vpc: ec2.IVpc): elbv2.IApplicationLoadBalancer {
-        const albId = `alb-${this.stage.identifier}`;
-        return elbv2.ApplicationLoadBalancer.fromApplicationLoadBalancerAttributes(this, albId, {
+    private setupServiceTargetGroup(vpc: ec2.IVpc): elbv2.ApplicationTargetGroup {
+        return new elbv2.ApplicationTargetGroup(this, `${this.serviceNaming.serviceName}-tg`, {
+            protocol: elbv2.ApplicationProtocol.HTTP,
+            port: 80,
+            targets: [this.fargateService],
+            targetGroupName: `${this.serviceNaming.serviceName}-tg`,
             vpc,
-            securityGroupId: this.stage.getLoadBalancerSecurityGroupId(),
-            loadBalancerArn: this.stage.getLoadBalancerArn(),
-            loadBalancerDnsName: this.stage.getLoadBalancerDnsName()
+            healthCheck: {
+                path: `/${this.serviceNaming.shortName}/healthCheck`,
+                port: `${this.stackProps.containerPort}`,
+                healthyThresholdCount: 2,
+                unhealthyThresholdCount: 8,
+                timeout: cdk.Duration.seconds(2),
+                interval: cdk.Duration.seconds(20)
+            },
+            targetType: elbv2.TargetType.IP,
+            deregistrationDelay: cdk.Duration.seconds(30)
         });
     }
 
-    private configureTargetGroup(): void {
-        this.loadBalancedFargateService.targetGroup.configureHealthCheck({
-            path: `/${this.serviceNaming.shortName}/healthCheck`,
-            port: `${this.stackProps.containerPort}`,
-            healthyThresholdCount: 2,
-            unhealthyThresholdCount: 8,
-            timeout: cdk.Duration.seconds(2),
-            interval: cdk.Duration.seconds(20)
-
-        });
-        // once a new target is healthy, make the deregistration quicker.
-        this.loadBalancedFargateService.targetGroup.setAttribute('deregistration_delay.timeout_seconds', '30');
-    }
-
-    private setupRoutingRule(): void {
+    private setupRoutingRule(targetGroup: elbv2.ApplicationTargetGroup): void {
         const httpListener = this.fetchHttpListener();
 
         new elbv2.ApplicationListenerRule(this, `${this.serviceNaming.serviceName}-forward-rule-${this.stage.identifier}`, {
             listener: httpListener,
             priority: 11,
-            action: elbv2.ListenerAction.forward([this.loadBalancedFargateService.targetGroup]),
+            action: elbv2.ListenerAction.forward([targetGroup]),
             conditions: [elbv2.ListenerCondition.pathPatterns([`/${this.serviceNaming.shortName}/*`])]
         });
     }
