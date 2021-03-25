@@ -5,7 +5,6 @@ import * as apiGw from '@aws-cdk/aws-apigateway';
 import * as iam from '@aws-cdk/aws-iam';
 import * as ecs from '@aws-cdk/aws-ecs';
 import * as ecr from '@aws-cdk/aws-ecr';
-import * as ecsPatterns from '@aws-cdk/aws-ecs-patterns';
 import * as ec2 from '@aws-cdk/aws-ec2';
 import * as elbv2 from '@aws-cdk/aws-elasticloadbalancingv2';
 import * as logs from '@aws-cdk/aws-logs';
@@ -13,18 +12,6 @@ import * as ssm from '@aws-cdk/aws-ssm';
 import * as uuid from 'uuid';
 
 import { Stage } from 'avr-cdk-utils';
-
-class FargateServiceNaming {
-    readonly shortName: string;
-    readonly serviceName: string;
-    readonly stageAwareServiceName: string;
-
-    constructor(shortName: string, stage: Stage) {
-        this.shortName = shortName;
-        this.serviceName = `${shortName}-service`;
-        this.stageAwareServiceName = `${stage.identifier}-${this.shortName}-fargate`;
-    }
-}
 
 export interface FargateContainerProps {
     /**
@@ -42,11 +29,50 @@ export interface FargateContainerProps {
     readonly memoryMultiplier?: number;
 }
 
-export interface FargateServiceProps {
+export interface AvrFargateServiceProps {
+    /**
+     * Short-hand name of the service. Omit the '-service' suffix. 
+     * Example: `blueprint` instead of `blueprint-service`.
+     */
+    readonly serviceShortName: string;
+    
+    /**
+     * Application stage of this application.
+     */
+    readonly stage: Stage;
+    
+    /**
+     * Dedicated ECR repository for this application. 
+     */
+    readonly repository: ecr.Repository; 
+
+    /**
+     * Internal container port.
+     * @default DEFAULT_CONTAINER_PORT
+     */
     readonly containerPort?: number;
+
+    /**
+     * Container properties like cpu, memory etc.
+     */
     readonly taskContainerProps?: FargateContainerProps;
+
+    /**
+     * Parameters passed on to the Java application.
+     */
     readonly jdkJavaOptions?: string[];
+
+    /**
+     * Datadog host to collect logs. 
+     * @default DEFAULT_LOGS_AGENT_HOST
+     */
     readonly logsAgentHost?: string;
+
+    /**
+     * The period of time, in seconds, that the Amazon ECS service scheduler ignores unhealthy 
+     * Elastic Load Balancing target health checks after a task has first started.
+     * @default DEFAULT_HEALTH_CHECK_GRACE_PERIOD
+     */
     readonly taskHealthCheckGracePeriod?: number;
 }
 
@@ -55,7 +81,10 @@ interface CompleteFargateContainerProps {
     readonly memory: number;
 }
 
-interface CompleteFargateStackProps {
+interface CompleteFargateServiceProps {
+    readonly serviceShortName: string;
+    readonly stage: Stage;
+    readonly repository: ecr.Repository; 
     readonly containerPort: number;
     readonly taskContainerProps: CompleteFargateContainerProps;
     readonly jdkJavaOptions: string[];
@@ -63,6 +92,21 @@ interface CompleteFargateStackProps {
     readonly taskHealthCheckGracePeriod: number;
 }
 
+class FargateServiceNaming {
+    readonly shortName: string;
+    readonly serviceName: string;
+    readonly stageAwareServiceName: string;
+
+    constructor(shortName: string, stage: Stage) {
+        this.shortName = shortName;
+        this.serviceName = `${shortName}-service`;
+        this.stageAwareServiceName = `${stage.identifier}-${this.shortName}-fargate`;
+    }
+}
+
+/**
+ * Fargate service with default configuration and Datadog logging for Java services.
+ */
 export class AvrFargateService extends cdk.Construct {
     private static readonly DEFAULT_CONTAINER_PORT = 8080;
     private static readonly DEFAULT_LOGS_AGENT_HOST = 'http-intake.logs.datadoghq.eu';
@@ -75,22 +119,24 @@ export class AvrFargateService extends cdk.Construct {
     public readonly image: ecs.TagParameterContainerImage;
     public readonly fargateService: ecs.FargateService;
 
-    private readonly stage: Stage;
+    private readonly props: CompleteFargateServiceProps;
     private readonly serviceNaming: FargateServiceNaming;
-    private readonly stackProps: CompleteFargateStackProps;
 
-    constructor(scope: cdk.Stack, serviceShortName: string, stage: Stage, repository: ecr.Repository, stackProps?: FargateServiceProps) {
-        const serviceNaming = new FargateServiceNaming(serviceShortName, stage);
+    /**
+     * @param scope Parent of this stack, usually an `App` or a `Stage`, but could be any construct.
+     * @param props Stack properties.
+     */
+    constructor(scope: cdk.Stack, props: AvrFargateServiceProps) {
+        const serviceNaming = new FargateServiceNaming(props.serviceShortName, props.stage);
         super(scope, serviceNaming.stageAwareServiceName);
 
         this.serviceNaming = serviceNaming;
-        this.stage = stage;
 
-        this.stackProps = AvrFargateService.defaultMissingValues(stackProps);
+        this.props = AvrFargateService.defaultMissingValues(props);
 
-        this.image = new ecs.TagParameterContainerImage(repository);
+        this.image = new ecs.TagParameterContainerImage(props.repository);
 
-        const vpc = ec2.Vpc.fromLookup(this, 'VPC', { vpcId: this.stage.vpcId });
+        const vpc = ec2.Vpc.fromLookup(this, 'VPC', { vpcId: props.stage.vpcId });
 
         this.fargateService = this.createFargateService(vpc);
 
@@ -104,26 +150,26 @@ export class AvrFargateService extends cdk.Construct {
         const cluster = this.fetchFargateCluster(vpc);
         const taskDefinition = this.createTaskDefinition();
 
-        const datadogApiKey = ssm.StringParameter.valueForStringParameter(this, `/${this.stage.identifier}/datadog/apikey`);
-        const defaultJavaOptions = this.compileDefaultJavaOptions(this.stackProps.jdkJavaOptions);
+        const datadogApiKey = ssm.StringParameter.valueForStringParameter(this, `/${this.props.stage.identifier}/datadog/apikey`);
+        const defaultJavaOptions = this.compileDefaultJavaOptions(this.props.jdkJavaOptions);
 
         const containerDefinition = taskDefinition.addContainer(this.serviceNaming.serviceName, {
             image: this.image,
             logging: this.setupFirelensLogs(datadogApiKey),
             environment: {
                 defaultJavaOptions,
-                'DD_ENV': this.stage.identifier,
+                'DD_ENV': this.props.stage.identifier,
                 'DD_JMXFETCH_ENABLED': 'true',
                 'DD_LOGS_INJECTION': 'true',
                 'DD_PROFILING_ENABLED': 'true',
                 'DD_SERVICE_MAPPING': `${this.serviceNaming.shortName}:${this.serviceNaming.serviceName}`,
                 'DD_TRACE_ANALYTICS_ENABLED': 'true'
             },
-            memoryReservationMiB: this.stackProps.taskContainerProps.memory * AvrFargateService.DEFAULT_MAX_RAM_PERCENTAGE
+            memoryReservationMiB: this.props.taskContainerProps.memory * AvrFargateService.DEFAULT_MAX_RAM_PERCENTAGE
         });
 
         containerDefinition.addPortMappings({
-            containerPort: this.stackProps.containerPort
+            containerPort: this.props.containerPort
         });
 
         this.setupMonitoring(taskDefinition, datadogApiKey);
@@ -132,7 +178,7 @@ export class AvrFargateService extends cdk.Construct {
             serviceName: this.serviceNaming.serviceName,
             cluster,
             taskDefinition,
-            healthCheckGracePeriod: cdk.Duration.seconds(this.stackProps.taskHealthCheckGracePeriod),
+            healthCheckGracePeriod: cdk.Duration.seconds(this.props.taskHealthCheckGracePeriod),
             securityGroup: this.setServiceSecurityGroup(vpc),
             assignPublicIp: true,
             desiredCount: 1,
@@ -145,7 +191,7 @@ export class AvrFargateService extends cdk.Construct {
 
         // allow applications in ECS cluster accessing our RDS instance
         const groupId = 'rds-security-group';
-        const rdsSecurityGroup = ec2.SecurityGroup.fromSecurityGroupId(this, groupId, this.stage.rdsSecurityGroup);
+        const rdsSecurityGroup = ec2.SecurityGroup.fromSecurityGroupId(this, groupId, this.props.stage.rdsSecurityGroup);
         fargateService.connections.securityGroups.forEach(securityGroup => {
             rdsSecurityGroup.connections.allowFrom(securityGroup, ec2.Port.tcp(5432), 'ECS Cluster for BE services')
         });
@@ -154,27 +200,27 @@ export class AvrFargateService extends cdk.Construct {
     }
 
     private setServiceSecurityGroup(vpc: ec2.IVpc): ec2.SecurityGroup {
-        const serviceSecurityGroup = new ec2.SecurityGroup(this, `security-group-${this.stage.identifier}`, {
+        const serviceSecurityGroup = new ec2.SecurityGroup(this, `security-group-${this.props.stage.identifier}`, {
             securityGroupName: `${this.serviceNaming.serviceName}-sg`,
-            description: `Security group of ECS service: ${this.serviceNaming.serviceName}`,
+            description: `Security group for ${this.serviceNaming.serviceName} on ${this.props.stage.identifier}.`,
             vpc,
             allowAllOutbound: true
         });
 
-        const loadBalancerSecurityGroup = ec2.SecurityGroup.fromSecurityGroupId(this, `alb-security-group-${this.stage.identifier}`,
-            this.stage.getLoadBalancerSecurityGroupId());
+        const loadBalancerSecurityGroup = ec2.SecurityGroup.fromSecurityGroupId(this, `alb-security-group-${this.props.stage.identifier}`,
+            this.props.stage.getLoadBalancerSecurityGroupId());
 
-        serviceSecurityGroup.addIngressRule(loadBalancerSecurityGroup, ec2.Port.tcp(this.stackProps.containerPort),
+        serviceSecurityGroup.addIngressRule(loadBalancerSecurityGroup, ec2.Port.tcp(this.props.containerPort),
             'Load balancer to target.');
 
         return serviceSecurityGroup;
     }
 
     private createTaskDefinition(): ecs.FargateTaskDefinition {
-        return new ecs.FargateTaskDefinition(this, `taskdef-${this.stage.identifier}`, {
-            cpu: this.stackProps.taskContainerProps.cpu,
-            memoryLimitMiB: this.stackProps.taskContainerProps.memory,
-            executionRole: new iam.Role(this, `taskexec-${this.stage.identifier}`, {
+        return new ecs.FargateTaskDefinition(this, `taskdef-${this.props.stage.identifier}`, {
+            cpu: this.props.taskContainerProps.cpu,
+            memoryLimitMiB: this.props.taskContainerProps.memory,
+            executionRole: new iam.Role(this, `taskexec-${this.props.stage.identifier}`, {
                 roleName: cdk.PhysicalName.GENERATE_IF_NEEDED,
                 assumedBy: new iam.CompositePrincipal(
                     new iam.ServicePrincipal('ecs.amazonaws.com'),
@@ -196,8 +242,8 @@ export class AvrFargateService extends cdk.Construct {
                 'DD_API_KEY': datadogApiKey,
                 'DD_APM_ENABLED': 'true',
                 'DD_DOGSTATSD_NON_LOCAL_TRAFFIC': 'true',
-                'DD_DOGSTATSD_TAGS': `["env:${this.stage.identifier}"]`,
-                'DD_ENV': this.stage.identifier,
+                'DD_DOGSTATSD_TAGS': `["env:${this.props.stage.identifier}"]`,
+                'DD_ENV': this.props.stage.identifier,
                 'DD_SERVICE': this.serviceNaming.serviceName,
                 'DD_SITE': 'datadoghq.eu',
                 'DD_VERSION': `${this.image.tagParameterValue}`,
@@ -223,7 +269,7 @@ export class AvrFargateService extends cdk.Construct {
 
     private setupCloudWatchLogGroup(logGroupName: string): ecs.LogDriver {
         return ecs.LogDriver.awsLogs({
-            streamPrefix: `${logGroupName}-${this.stage.identifier}`,
+            streamPrefix: `${logGroupName}-${this.props.stage.identifier}`,
             logGroup: new logs.LogGroup(this, `${logGroupName}-log-group`, {
                 logGroupName: `${this.serviceNaming.stageAwareServiceName}-${logGroupName}`,
                 retention: logs.RetentionDays.FIVE_DAYS,
@@ -233,9 +279,9 @@ export class AvrFargateService extends cdk.Construct {
     }
 
     private fetchFargateCluster(vpc: ec2.IVpc): ecs.ICluster {
-        return ecs.Cluster.fromClusterAttributes(this, `service-cluster-${this.stage.identifier}`, {
-            clusterName: this.stage.getServicesClusterName(),
-            clusterArn: this.stage.getServicesClusterArn(),
+        return ecs.Cluster.fromClusterAttributes(this, `service-cluster-${this.props.stage.identifier}`, {
+            clusterName: this.props.stage.getServicesClusterName(),
+            clusterArn: this.props.stage.getServicesClusterArn(),
             vpc,
             securityGroups: []
         })
@@ -248,10 +294,10 @@ export class AvrFargateService extends cdk.Construct {
                 'apiKey': datadogApiKey,
                 'provider': 'ecs',
                 'dd_service': this.serviceNaming.serviceName,
-                'Host': this.stackProps.logsAgentHost,
+                'Host': this.props.logsAgentHost,
                 'TLS': 'on',
                 'dd_source': 'java',
-                'dd_tags': `env:${this.stage.identifier}`,
+                'dd_tags': `env:${this.props.stage.identifier}`,
                 'Name': 'datadog'
             }
         });
@@ -266,7 +312,7 @@ export class AvrFargateService extends cdk.Construct {
             vpc,
             healthCheck: {
                 path: `/${this.serviceNaming.shortName}/healthCheck`,
-                port: `${this.stackProps.containerPort}`,
+                port: `${this.props.containerPort}`,
                 healthyThresholdCount: 2,
                 unhealthyThresholdCount: 8,
                 timeout: cdk.Duration.seconds(2),
@@ -280,7 +326,7 @@ export class AvrFargateService extends cdk.Construct {
     private setupRoutingRule(targetGroup: elbv2.ApplicationTargetGroup): void {
         const httpListener = this.fetchHttpListener();
 
-        new elbv2.ApplicationListenerRule(this, `${this.serviceNaming.serviceName}-forward-rule-${this.stage.identifier}`, {
+        new elbv2.ApplicationListenerRule(this, `${this.serviceNaming.serviceName}-forward-rule-${this.props.stage.identifier}`, {
             listener: httpListener,
             priority: 11,
             action: elbv2.ListenerAction.forward([targetGroup]),
@@ -289,10 +335,10 @@ export class AvrFargateService extends cdk.Construct {
     }
 
     private fetchHttpListener(): elbv2.IApplicationListener {
-        const httpListenerId = `alb-listener-${this.stage.identifier}`;
+        const httpListenerId = `alb-listener-${this.props.stage.identifier}`;
         return elbv2.ApplicationListener.fromApplicationListenerAttributes(this, httpListenerId, {
-            listenerArn: this.stage.getHttpListenerArn(),
-            securityGroupId: this.stage.getLoadBalancerSecurityGroupId()
+            listenerArn: this.props.stage.getHttpListenerArn(),
+            securityGroupId: this.props.stage.getLoadBalancerSecurityGroupId()
         })
     }
 
@@ -305,13 +351,13 @@ export class AvrFargateService extends cdk.Construct {
         const deployment = new apiGw.Deployment(this, `gateway-deployment-${uuid.v4()}`, { api, description });
 
         // @ts-ignore Setting this property allows us to release against an existing stage despite cdk not properly supporting it.
-        deployment.resource.stageName = this.stage.identifier;
+        deployment.resource.stageName = this.props.stage.identifier;
     }
 
     private getApiGwRootResource(): apiGw.IRestApi {
-        return apiGw.RestApi.fromRestApiAttributes(this, `Avrios API: ${this.stage.identifier}`, {
-            restApiId: this.stage.getRestApiId(),
-            rootResourceId: this.stage.getRestApiRootResourceId()
+        return apiGw.RestApi.fromRestApiAttributes(this, `Avrios API: ${this.props.stage.identifier}`, {
+            restApiId: this.props.stage.getRestApiId(),
+            rootResourceId: this.props.stage.getRestApiRootResourceId()
         });
     }
 
@@ -324,7 +370,7 @@ export class AvrFargateService extends cdk.Construct {
                 allowHeaders: ['x-auth-token', 'x-auth-id-token', 'x-auth-access-token', 'x-filename',
                     'x-app-path', 'x-app-version', 'x-handle-error-types', 'x-reset-token', 'content-type'],
                 allowMethods: ['OPTIONS', 'GET', 'HEAD', 'POST', 'PUT', 'DELETE'],
-                allowOrigins: [this.stage.baseUrl],
+                allowOrigins: [this.props.stage.baseUrl],
                 maxAge: cdk.Duration.seconds(7200)
             }
         });
@@ -345,7 +391,7 @@ export class AvrFargateService extends cdk.Construct {
         proxyResource.addMethod('ANY', integration, {
             authorizationType: apiGw.AuthorizationType.CUSTOM,
             authorizer: {
-                authorizerId: this.stage.getRestApiAuthorizerId(),
+                authorizerId: this.props.stage.getRestApiAuthorizerId(),
             },
             methodResponses: [{
                 statusCode: '200',
@@ -360,20 +406,21 @@ export class AvrFargateService extends cdk.Construct {
     }
 
     private getAlbUrl(contextName: string): string {
-        return `http://${this.stage.getAlbDns()}/${contextName}/{proxy}`;
+        return `http://${this.props.stage.getAlbDns()}/${contextName}/{proxy}`;
     }
 
-    private static defaultMissingValues(stackProps: FargateServiceProps | undefined): CompleteFargateStackProps {
-        const taskContainerProps = AvrFargateService.completeContainerProps(stackProps?.taskContainerProps);
+    private static defaultMissingValues(props: AvrFargateServiceProps): CompleteFargateServiceProps {
+        const taskContainerProps = AvrFargateService.completeContainerProps(props.taskContainerProps);
 
-        const containerPort = stackProps?.containerPort ? stackProps?.containerPort : AvrFargateService.DEFAULT_CONTAINER_PORT;
-        const logsAgentHost = stackProps?.logsAgentHost ? stackProps?.logsAgentHost : AvrFargateService.DEFAULT_LOGS_AGENT_HOST;
-        const jdkJavaOptions = stackProps?.jdkJavaOptions ? stackProps?.jdkJavaOptions : [];
-        const taskHealthCheckGracePeriod = stackProps?.taskHealthCheckGracePeriod ?
-            stackProps?.taskHealthCheckGracePeriod :
-            AvrFargateService.DEFAULT_HEALTH_CHECK_GRACE_PERIOD;
+        const containerPort = props.containerPort ? props.containerPort : AvrFargateService.DEFAULT_CONTAINER_PORT;
+        const logsAgentHost = props.logsAgentHost ? props.logsAgentHost : AvrFargateService.DEFAULT_LOGS_AGENT_HOST;
+        const jdkJavaOptions = props.jdkJavaOptions ? props.jdkJavaOptions : [];
+        const taskHealthCheckGracePeriod = props.taskHealthCheckGracePeriod ? props.taskHealthCheckGracePeriod : AvrFargateService.DEFAULT_HEALTH_CHECK_GRACE_PERIOD;
 
         return {
+            serviceShortName: props.serviceShortName,
+            stage: props.stage,
+            repository: props.repository,
             containerPort,
             logsAgentHost,
             taskContainerProps,
@@ -394,10 +441,10 @@ export class AvrFargateService extends cdk.Construct {
     }
 
     private compileDefaultJavaOptions(defaultJavaOptions: string[]): string {
-        const password = ssm.StringParameter.valueForStringParameter(this, `/${this.stage.identifier}/encryptor.password`);
+        const password = ssm.StringParameter.valueForStringParameter(this, `/${this.props.stage.identifier}/encryptor.password`);
         defaultJavaOptions.push(`-Djasypt.encryptor.password=${password}`);
 
-        defaultJavaOptions.push(`-Dspring.profiles.active=${this.stage.identifier}`);
+        defaultJavaOptions.push(`-Dspring.profiles.active=${this.props.stage.identifier}`);
         defaultJavaOptions.push(`-Dcom.avrios.service.name=${this.serviceNaming.serviceName}`);
         defaultJavaOptions.push(`-XX:+UseThreadPriorities`);
         defaultJavaOptions.push(`-XX:MaxRAMPercentage=${AvrFargateService.DEFAULT_MAX_RAM_PERCENTAGE * 100}`);
