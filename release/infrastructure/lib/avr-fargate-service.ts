@@ -138,6 +138,9 @@ export class AvrFargateService extends cdk.Construct {
             desiredCount: 1,
             minHealthyPercent: 100,
             maxHealthyPercent: 200,
+            circuitBreaker: {
+                rollback: true
+            }
         });
 
         // allow applications in ECS cluster accessing our RDS instance
