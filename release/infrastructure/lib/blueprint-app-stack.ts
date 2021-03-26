@@ -7,7 +7,9 @@ import {
     AvrAppStack,
     AvrAppStackProps,
     AvrFargateService,
-    AvrFargateContainerProps 
+    AvrFargateContainerProps,
+    AvrTopic,
+    AvrQueue
 } from 'avr-cdk-utils';
 
 interface BlueprintAppStackProps extends AvrAppStackProps {
@@ -31,6 +33,15 @@ export class BlueprintAppStack extends AvrAppStack {
             taskContainerProps: this.props.taskContainerProps
         });
         
-        // add your own aws resources here
+        // sample resources
+        const testTopic = new AvrTopic(this, {
+            topicName: 'blueprint-events',
+            stage: props.stage
+        });
+        const testQueue = new AvrQueue(this, {
+            queueName: 'blueprint-events',
+            stage: props.stage,
+            topic: testTopic
+        });
     }
 }
