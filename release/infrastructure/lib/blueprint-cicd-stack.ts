@@ -5,15 +5,17 @@ import * as ecs from '@aws-cdk/aws-ecs';
 
 import { BlueprintAppStack } from './blueprint-app-stack';
 
-import { AvrCiCdStack, AvrCiCdStackProps } from './avr-cicd-stack';
-import { AvrEcrRepository } from './avr-ecr-repository';
-import { AvrCodePipelineFeature } from './avr-code-pipeline-feature';
-import { AvrCodePipelineHotfix } from './avr-code-pipeline-hotfix';
-import { AvrCodePipelineProps } from './avr-code-pipeline';
-import { AvrCodePipelineMain } from './avr-code-pipeline-main';
-import { FargateContainerProps } from './avr-fargate-service';
-
-import { Stage } from 'avr-cdk-utils';
+import { 
+    AvrStage,
+    AvrCiCdStack, 
+    AvrCiCdStackProps,
+    AvrEcrRepository,
+    AvrCodePipelineFeature,
+    AvrCodePipelineHotfix,
+    AvrCodePipelineProps,
+    AvrCodePipelineMain,
+    AvrFargateContainerProps
+} from 'avr-cdk-utils';
 
 export class BlueprintCiCdStack extends AvrCiCdStack {
     private readonly ecrRepository: AvrEcrRepository;
@@ -26,11 +28,11 @@ export class BlueprintCiCdStack extends AvrCiCdStack {
             repositoryName: this.props.serviceShortName
         });
         
-        this.createApplicationStack(scope, Stage.TEST, {
+        this.createApplicationStack(scope, AvrStage.TEST, {
             cpuMultiplier: 0.5 
         });
-        this.createApplicationStack(scope, Stage.STAGING);
-        this.createApplicationStack(scope, Stage.PROD);
+        this.createApplicationStack(scope, AvrStage.STAGING);
+        this.createApplicationStack(scope, AvrStage.PROD);
 
         const pipelineProps = this.getPipelineProps();
         new AvrCodePipelineFeature(this, pipelineProps);
@@ -38,7 +40,7 @@ export class BlueprintCiCdStack extends AvrCiCdStack {
         new AvrCodePipelineMain(this, pipelineProps);
     }
 
-    private createApplicationStack(scope: cdk.Construct, stage: Stage, taskContainerProps?: FargateContainerProps): void {
+    private createApplicationStack(scope: cdk.Construct, stage: AvrStage, taskContainerProps?: AvrFargateContainerProps): void {
         const appStack = new BlueprintAppStack(scope, {
             stage, 
             serviceShortName: this.props.serviceShortName,

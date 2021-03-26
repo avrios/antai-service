@@ -3,12 +3,16 @@
 import * as cdk from '@aws-cdk/core';
 import * as ecr from '@aws-cdk/aws-ecr';
 
-import { AvrAppStack, AvrAppStackProps } from './avr-app-stack';
-import { AvrFargateService, FargateContainerProps } from './avr-fargate-service';
+import { 
+    AvrAppStack,
+    AvrAppStackProps,
+    AvrFargateService,
+    AvrFargateContainerProps 
+} from 'avr-cdk-utils';
 
 interface BlueprintAppStackProps extends AvrAppStackProps {
     readonly repository: ecr.Repository;
-    readonly taskContainerProps?: FargateContainerProps;
+    readonly taskContainerProps?: AvrFargateContainerProps;
 }
 
 export class BlueprintAppStack extends AvrAppStack {
