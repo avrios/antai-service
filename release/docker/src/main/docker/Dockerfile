@@ -6,7 +6,6 @@ WORKDIR ${container.work.dir}
 
 COPY ["maven/${docker.jar.name}", \
       "maven/application-*.properties", \
-      "maven/log4j2.xml", \
       "maven/start-service.sh", \
       "./"]
 
