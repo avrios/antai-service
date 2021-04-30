@@ -8,10 +8,12 @@ phases:
 
   pre_build:
     commands:
-      - aws codeartifact login --tool npm --repository avrios-npm --domain avrios --domain-owner ${CODE_ARTIFACT_ACCOUNT}
-      - export CODEARTIFACT_TOKEN=`aws codeartifact get-authorization-token --domain avrios --domain-owner ${CODE_ARTIFACT_ACCOUNT} --query authorizationToken --output text`
+      - aws codeartifact login --tool npm --repository avrios-npm --domain avrios
+      - export CODEARTIFACT_TOKEN=`aws codeartifact get-authorization-token --domain avrios --query authorizationToken --output text`
       - aws ecr get-login-password | docker login --username AWS --password-stdin ${REPOSITORY_URI}
-      - RELEASE_VERSION=${RELEASE_VERSION_PREFIX}${CODEBUILD_BUILD_NUMBER}${RELEASE_VERSION_POSTFIX}
+      - MAJOR_VERSION=1
+      - RELEASE_VERSION=${RELEASE_VERSION_PREFIX}${MAJOR_VERSION}.${CODEBUILD_BUILD_NUMBER}${RELEASE_VERSION_POSTFIX}
+      - echo ${RELEASE_VERSION}
 
   build:
     commands:

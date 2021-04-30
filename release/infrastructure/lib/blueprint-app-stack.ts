@@ -41,7 +41,7 @@ export class BlueprintAppStack extends AvrAppStack {
         const testQueue = new AvrQueue(this, {
             queueName: 'blueprint-events',
             stage: props.stage,
-            topic: testTopic
+            topic: testTopic.topic
         });
     }
 }

@@ -12,7 +12,7 @@ import {
     AvrEcrRepository,
     AvrCodePipelineFeature,
     AvrCodePipelineHotfix,
-    AvrCodePipelineProps,
+    AvrEcrCodePipelineProps,
     AvrCodePipelineMain,
     AvrFargateContainerProps
 } from 'avr-cdk-utils';
@@ -50,7 +50,7 @@ export class BlueprintCiCdStack extends AvrCiCdStack {
         this.serviceImages[stage.identifier] = appStack.fargateService.image;
     }
 
-    private getPipelineProps(): AvrCodePipelineProps {
+    private getPipelineProps(): AvrEcrCodePipelineProps {
         return {
             ecrRepository: this.ecrRepository.repository,
             serviceImages: this.serviceImages,
