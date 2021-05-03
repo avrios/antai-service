@@ -6,12 +6,12 @@
 
     <servers>
         <server>
-            <id>avrios-releases</id>
+            <id>avr-releases</id>
             <username>aws</username>
             <password>${env.CODEARTIFACT_TOKEN}</password>
         </server>
         <server>
-            <id>avrios-snapshots</id>
+            <id>avr-snapshots</id>
             <username>aws</username>
             <password>${env.CODEARTIFACT_TOKEN}</password>
         </server>
@@ -26,13 +26,13 @@
 
             <repositories>
                 <repository>
-                    <id>avrios-releases</id>
+                    <id>avr-releases</id>
                     <snapshots><enabled>false</enabled></snapshots>
                     <url>https://avrios-${env.CODE_ARTIFACT_ACCOUNT}.d.codeartifact.eu-central-1.amazonaws.com/maven/avrios-release/</url>
                 </repository>
 
                 <repository>
-                    <id>avrios-snapshots</id>
+                    <id>avr-snapshots</id>
                     <snapshots><enabled>true</enabled></snapshots>
                     <url>https://avrios-${env.CODE_ARTIFACT_ACCOUNT}.d.codeartifact.eu-central-1.amazonaws.com/maven/avrios-snapshot/</url>
                 </repository>
