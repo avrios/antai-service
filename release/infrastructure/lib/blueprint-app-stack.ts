@@ -36,12 +36,14 @@ export class BlueprintAppStack extends AvrAppStack {
         // sample resources
         const testTopic = new AvrTopic(this, {
             topicName: 'blueprint-events',
-            stage: props.stage
+            stage: props.stage,
+            publishMessagesGrantee: this.fargateService.getTaskRole()
         });
         const testQueue = new AvrQueue(this, {
             queueName: 'blueprint-events',
             stage: props.stage,
-            topic: testTopic.topic
+            topic: testTopic.topic,
+            consumeMessagesGrantee: this.fargateService.getTaskRole()
         });
     }
 }

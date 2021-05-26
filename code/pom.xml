@@ -17,7 +17,7 @@
 
     <properties>
         <!-- internal dependency versions -->
-        <girders.version>RELEASE-1.8</girders.version>
+        <girders.version>RELEASE-1.12</girders.version>
 
         <!-- plugin versions -->
         <build-helper-maven-plugin.version>3.2.0</build-helper-maven-plugin.version>
