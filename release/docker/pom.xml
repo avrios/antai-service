@@ -107,6 +107,12 @@
                                         -XX:+UseThreadPriorities
                                     </JDK_JAVA_OPTIONS>
                                 </env>
+                                <volumes>
+                                    <bind>
+                                        <!-- Share the local AWS configuration with the docker container -->
+                                        <volume>~/.aws:/root/.aws</volume>
+                                    </bind>
+                                </volumes>
                             </run>
                         </image>
                     </images>
