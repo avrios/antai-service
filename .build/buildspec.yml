@@ -21,6 +21,10 @@ phases:
       - mvn clean deploy -s .build/codeartifact.xml
       - printf "{\"imageTag\":\"${RELEASE_VERSION}\"}" > imagedefinitions.json
 
+  post_build:
+    commands:
+      - rm -rf /root/.m2/repository/com/avrios/blueprint
+
 artifacts:
   files:
     - 'imagedefinitions.json'
@@ -30,3 +34,4 @@ artifacts:
 cache:
   paths:
     - '/root/.m2/**/*'
+    - '/root/.npm/**/*'
