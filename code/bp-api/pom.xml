@@ -11,6 +11,11 @@
 
     <artifactId>bp-api</artifactId>
 
+    <properties>
+        <bugsnag.active>false</bugsnag.active>
+        <bugsnag.send_uncaught_exceptions>false</bugsnag.send_uncaught_exceptions>
+    </properties>
+
     <dependencies>
         <!-- Internal dependencies -->
         <dependency>
