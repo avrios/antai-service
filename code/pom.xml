@@ -42,6 +42,11 @@
                 <artifactId>common</artifactId>
                 <version>${girders.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.avrios.girders</groupId>
+                <artifactId>security</artifactId>
+                <version>${girders.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 

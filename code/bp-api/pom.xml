@@ -12,6 +12,8 @@
     <artifactId>bp-api</artifactId>
 
     <properties>
+        <jwtIssuer.userpools>local_123</jwtIssuer.userpools>
+        <jwtIssuer.path>http://localhost:8077/jwk/%s/</jwtIssuer.path>
         <bugsnag.active>false</bugsnag.active>
         <bugsnag.send_uncaught_exceptions>false</bugsnag.send_uncaught_exceptions>
     </properties>
@@ -43,6 +45,17 @@
         <dependency>
             <groupId>com.avrios.girders</groupId>
             <artifactId>common</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.avrios.girders</groupId>
+            <artifactId>security</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-data-redis</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
