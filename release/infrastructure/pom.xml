@@ -153,5 +153,29 @@
                 </plugins>
             </build>
         </profile>
+        <profile>
+            <id>deploy-dev-resources</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>cdk-deploy</id>
+                                <phase>compile</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>npx</executable>
+                                    <commandlineArgs>cdk deploy "dev-*-${avr.service.name.short}-resources" --profile ${aws.tools-account.profile}  --require-approval never</commandlineArgs>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 </project>

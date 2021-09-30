@@ -35,3 +35,8 @@ In `release/infrastructure`, run ` mvn clean install -P<profile>`, in order to
 
   **Caution**: deploying the update runs non-interactively, you're not going to be asked to review
   IAM changes. Use `diff-all-stacks` first in order to review changes.
+
+* deploy dev resources: `deploy-dev-resources`
+
+  **Note**: The dev resources are a subset of the AWS infrastructure to be used during "local" development
+  (e.g. when you run the app through IntelliJ) 
