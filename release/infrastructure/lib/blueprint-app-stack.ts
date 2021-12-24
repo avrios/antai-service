@@ -76,7 +76,8 @@ export class BlueprintResources {
                 [AvrStage.TEST, { expression: 'cron(1 4 * * ? *)', enabled: true }],
                 [AvrStage.DEV, { expression: 'rate(1 hour)', enabled: true }],
             ]),
-            stage
+            stage,
+            consumeMessagesGrantee: taskRole,
         });
 
         new AvrJob(scope, {
@@ -88,7 +89,8 @@ export class BlueprintResources {
                 [AvrStage.TEST, { expression: 'cron(1 4 * * ? *)', enabled: true }],
                 [AvrStage.DEV, { expression: 'rate(1 day)', enabled: true }],
             ]),
-            stage
+            stage,
+            consumeMessagesGrantee: taskRole,
         });
     }
 }
