@@ -9,6 +9,8 @@ import {
     AvrAppStackProps,
     AvrFargateService,
     AvrFargateContainerProps,
+    AvrJobConfig,
+    AvrJob,
     AvrTopic,
     AvrQueue,
     AvrStage
@@ -57,11 +59,36 @@ export class BlueprintResources {
             stage,
             publishMessagesGrantee: taskRole
         });
-        const testQueue = new AvrQueue(scope, {
+
+        new AvrQueue(scope, {
             queueName: 'blueprint-events',
             stage,
             topic: testTopic.topic,
             consumeMessagesGrantee: taskRole
+        });
+
+        new AvrJob(scope, {
+            serviceShortName: 'blueprint',
+            jobName: 'simplejob',
+            config: new Map<AvrStage, AvrJobConfig>([
+                [AvrStage.PROD, { expression: 'cron(1 3 * * ? *)', enabled: false }],
+                [AvrStage.STAGING, { expression: 'cron(1 3 * * ? *)', enabled: false }],
+                [AvrStage.TEST, { expression: 'cron(1 4 * * ? *)', enabled: true }],
+                [AvrStage.DEV, { expression: 'rate(1 hour)', enabled: true }],
+            ]),
+            stage
+        });
+
+        new AvrJob(scope, {
+            serviceShortName: 'blueprint',
+            jobName: 'complexjob',
+            config: new Map<AvrStage, AvrJobConfig>([
+                [AvrStage.PROD, { expression: 'cron(1 3 * * ? *)', enabled: false }],
+                [AvrStage.STAGING, { expression: 'cron(1 3 * * ? *)', enabled: false }],
+                [AvrStage.TEST, { expression: 'cron(1 4 * * ? *)', enabled: true }],
+                [AvrStage.DEV, { expression: 'rate(1 day)', enabled: true }],
+            ]),
+            stage
         });
     }
 }

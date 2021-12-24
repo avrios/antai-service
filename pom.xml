@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.avrios.girders</groupId>
         <artifactId>parent</artifactId>
-        <version>RELEASE-1.58</version>
+        <version>RELEASE-1.62</version>
     </parent>
 
     <groupId>com.avrios.blueprint</groupId>
@@ -39,7 +39,7 @@
         <avr.service.rootpackage>com.avrios.blueprint</avr.service.rootpackage>
 
         <!-- run configuration -->
-        <exec.config.port>8090</exec.config.port>
+        <exec.config.port>9999</exec.config.port>
         <exec.config.stage>dev</exec.config.stage>
 
         <!-- plugin versions -->

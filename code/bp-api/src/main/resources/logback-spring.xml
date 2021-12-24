@@ -33,6 +33,8 @@
     <logger name="io.lettuce" level="ERROR"/>
     <logger name="io.netty.util.internal" level="ERROR"/>
     <logger name="io.micrometer.shaded.io.netty.util.internal" level="ERROR"/>
+    <logger name="com.amazonaws" level="INFO"/>
+    <logger name="io.awspring.cloud.messaging" level="ERROR" />
 
     <springProfile name="dev">
         <root level="DEBUG">

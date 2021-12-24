@@ -16,6 +16,10 @@
         <jwtIssuer.path>http://localhost:8077/jwk/%s/</jwtIssuer.path>
         <bugsnag.active>false</bugsnag.active>
         <bugsnag.send_uncaught_exceptions>false</bugsnag.send_uncaught_exceptions>
+
+        <aws.roleArn>arn:aws:iam::821747761766:role/AccountDeveloperRole</aws.roleArn>
+        <!--suppress UnresolvedMavenProperty -->
+        <aws.avrios.stage>dev-${DEV_LOCAL_ENV:common}</aws.avrios.stage>
     </properties>
 
     <dependencies>
@@ -61,6 +65,11 @@
         <dependency>
             <groupId>com.github.ulisesbocchio</groupId>
             <artifactId>jasypt-spring-boot-starter</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.avrios.girders</groupId>
+            <artifactId>aws-job</artifactId>
         </dependency>
 
         <!-- ******************** -->

@@ -17,7 +17,7 @@
 
     <properties>
         <!-- internal dependency versions -->
-        <girders.version>RELEASE-1.58</girders.version>
+        <girders.version>RELEASE-1.62</girders.version>
 
         <!-- plugin versions -->
         <build-helper-maven-plugin.version>3.2.0</build-helper-maven-plugin.version>
@@ -42,9 +42,16 @@
                 <artifactId>common</artifactId>
                 <version>${girders.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>com.avrios.girders</groupId>
                 <artifactId>security</artifactId>
+                <version>${girders.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.avrios.girders</groupId>
+                <artifactId>aws-job</artifactId>
                 <version>${girders.version}</version>
             </dependency>
         </dependencies>
