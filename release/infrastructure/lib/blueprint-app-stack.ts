@@ -69,7 +69,7 @@ export class BlueprintResources {
 
         new AvrJob(scope, {
             serviceShortName: 'blueprint',
-            jobName: 'simplejob',
+            jobName: 'simple',
             config: new Map<AvrStage, AvrJobConfig>([
                 [AvrStage.PROD, { expression: 'cron(1 3 * * ? *)', enabled: false }],
                 [AvrStage.STAGING, { expression: 'cron(1 3 * * ? *)', enabled: false }],
@@ -82,7 +82,7 @@ export class BlueprintResources {
 
         new AvrJob(scope, {
             serviceShortName: 'blueprint',
-            jobName: 'complexjob',
+            jobName: 'complex',
             config: new Map<AvrStage, AvrJobConfig>([
                 [AvrStage.PROD, { expression: 'cron(1 3 * * ? *)', enabled: false }],
                 [AvrStage.STAGING, { expression: 'cron(1 3 * * ? *)', enabled: false }],
