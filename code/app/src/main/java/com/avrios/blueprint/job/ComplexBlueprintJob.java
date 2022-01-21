@@ -2,7 +2,7 @@ package com.avrios.blueprint.job;
 
 import com.avrios.girders.awsmessaging.sns.MessagingService;
 import com.avrios.job.ExecutionScheduledMessage;
-import com.avrios.job.PhasedJob;
+import com.avrios.job.ParallelJob;
 import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
 import io.awspring.cloud.messaging.listener.annotation.SqsListener;
 import lombok.extern.slf4j.Slf4j;
@@ -13,7 +13,7 @@ import java.util.UUID;
 
 @Slf4j
 @Component
-public class ComplexBlueprintJob extends PhasedJob {
+public class ComplexBlueprintJob extends ParallelJob {
     public ComplexBlueprintJob(MessagingService messagingService) {
         super(messagingService);
     }
