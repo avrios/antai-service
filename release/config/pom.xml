@@ -42,7 +42,7 @@
                     <artifactItems>
                         <artifactItem>
                             <groupId>com.avrios.blueprint</groupId>
-                            <artifactId>bp-api</artifactId>
+                            <artifactId>app</artifactId>
                             <classifier>config-template</classifier>
                             <type>properties</type>
                             <version>${project.version}</version>

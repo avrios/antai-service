@@ -15,57 +15,7 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <properties>
-        <!-- internal dependency versions -->
-        <girders.version>RELEASE-1.63</girders.version>
-
-        <!-- plugin versions -->
-        <build-helper-maven-plugin.version>3.2.0</build-helper-maven-plugin.version>
-    </properties>
-
     <modules>
-        <module>bp-api</module>
+        <module>app</module>
     </modules>
-
-    <dependencyManagement>
-        <dependencies>
-            <!-- internal modules -->
-            <dependency>
-                <groupId>com.avrios.blueprint</groupId>
-                <artifactId>bp-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <!-- Avrios Girders -->
-            <dependency>
-                <groupId>com.avrios.girders</groupId>
-                <artifactId>common</artifactId>
-                <version>${girders.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.avrios.girders</groupId>
-                <artifactId>security</artifactId>
-                <version>${girders.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.avrios.girders</groupId>
-                <artifactId>aws-job</artifactId>
-                <version>${girders.version}</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-
-    <build>
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <groupId>org.codehaus.mojo</groupId>
-                    <artifactId>build-helper-maven-plugin</artifactId>
-                    <version>${build-helper-maven-plugin.version}</version>
-                </plugin>
-            </plugins>
-        </pluginManagement>
-    </build>
 </project>

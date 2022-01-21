@@ -11,7 +11,7 @@ The project uses maven:
 Choose whether to run from within the IDE, or the command line:
 
 * *IntelliJ* - refer to shared run configurations
-* *Maven* - after compiling from `code` module: `mvn exec:java -pl bp-api`
+* *Maven* - after compiling from `code` module: `mvn exec:java -pl app`
 * *Docker* - from `release/docker` with `mvn docker:run`
 
 ### Update project dependencies

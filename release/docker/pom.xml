@@ -24,7 +24,7 @@
     <dependencies>
         <dependency>
             <groupId>com.avrios.blueprint</groupId>
-            <artifactId>bp-api</artifactId>
+            <artifactId>app</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -53,7 +53,7 @@
                                         <dependencySets>
                                             <dependencySet>
                                                 <includes>
-                                                    <include>com.avrios.blueprint:bp-api</include>
+                                                    <include>com.avrios.blueprint:app</include>
                                                 </includes>
                                                 <outputDirectory>.</outputDirectory>
                                                 <outputFileNameMapping>${docker.jar.name}</outputFileNameMapping>
