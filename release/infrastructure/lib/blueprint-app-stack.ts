@@ -71,8 +71,8 @@ export class BlueprintResources {
             serviceShortName: 'blueprint',
             jobName: 'simple',
             config: new Map<AvrStage, AvrJobConfig>([
-                [AvrStage.PROD, { expression: 'cron(1 3 * * ? *)', enabled: false }],
-                [AvrStage.STAGING, { expression: 'cron(1 3 * * ? *)', enabled: false }],
+                [AvrStage.PROD, { expression: 'cron(1 3 * * ? *)', enabled: true }],
+                [AvrStage.STAGING, { expression: 'cron(1 3 * * ? *)', enabled: true }],
                 [AvrStage.TEST, { expression: 'cron(1 4 * * ? *)', enabled: true }],
                 [AvrStage.DEV, { expression: 'rate(1 hour)', enabled: true }],
             ]),
@@ -84,8 +84,8 @@ export class BlueprintResources {
             serviceShortName: 'blueprint',
             jobName: 'complex',
             config: new Map<AvrStage, AvrJobConfig>([
-                [AvrStage.PROD, { expression: 'cron(1 3 * * ? *)', enabled: false }],
-                [AvrStage.STAGING, { expression: 'cron(1 3 * * ? *)', enabled: false }],
+                [AvrStage.PROD, { expression: 'cron(1 3 * * ? *)', enabled: true }],
+                [AvrStage.STAGING, { expression: 'cron(1 3 * * ? *)', enabled: true }],
                 [AvrStage.TEST, { expression: 'cron(1 4 * * ? *)', enabled: true }],
                 [AvrStage.DEV, { expression: 'rate(1 day)', enabled: true }],
             ]),
