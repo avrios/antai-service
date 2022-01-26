@@ -5,16 +5,16 @@ import * as ecs from '@aws-cdk/aws-ecs';
 
 import { BlueprintAppStack } from './blueprint-app-stack';
 
-import { 
+import {
     AvrStage,
-    AvrCiCdStack, 
+    AvrCiCdStack,
     AvrCiCdStackProps,
     AvrEcrRepository,
+    AvrCodePipeline,
     AvrCodePipelineFeature,
     AvrCodePipelineHotfix,
     AvrEcrCodePipelineProps,
     AvrCodePipelineMain,
-    AvrFargateContainerProps
 } from 'avr-cdk-utils';
 
 export class BlueprintCiCdStack extends AvrCiCdStack {
@@ -27,10 +27,8 @@ export class BlueprintCiCdStack extends AvrCiCdStack {
         this.ecrRepository = new AvrEcrRepository(this, {
             repositoryName: this.props.serviceShortName
         });
-        
-        this.createApplicationStack(scope, AvrStage.TEST, {
-            cpuMultiplier: 0.5 
-        });
+
+        this.createApplicationStack(scope, AvrStage.TEST);
         this.createApplicationStack(scope, AvrStage.STAGING);
         this.createApplicationStack(scope, AvrStage.PROD);
 
@@ -40,12 +38,17 @@ export class BlueprintCiCdStack extends AvrCiCdStack {
         new AvrCodePipelineMain(this, pipelineProps);
     }
 
-    private createApplicationStack(scope: cdk.Construct, stage: AvrStage, taskContainerProps?: AvrFargateContainerProps): void {
+    private createApplicationStack(scope: cdk.Construct, stage: AvrStage): void {
         const appStack = new BlueprintAppStack(scope, {
-            stage, 
+            stage,
             serviceShortName: this.props.serviceShortName,
-            repository: this.ecrRepository.repository, 
-            taskContainerProps
+            repository: this.ecrRepository.repository,
+            taskContainerProps: {
+                runtimePlatform: {
+                    cpuArchitecture: ecs.CpuArchitecture.ARM64,
+                    operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
+                }
+            },
         });
         this.serviceImages[stage.identifier] = appStack.fargateService.image;
     }
@@ -55,7 +58,8 @@ export class BlueprintCiCdStack extends AvrCiCdStack {
             ecrRepository: this.ecrRepository.repository,
             serviceImages: this.serviceImages,
             serviceShortName: this.props.serviceShortName,
-            gitRepositoryName: this.props.gitRepositoryName
+            gitRepositoryName: this.props.gitRepositoryName,
+            codeBuildImage: AvrCodePipeline.getCustomAarch64Image(this),
         };
     }
 }
