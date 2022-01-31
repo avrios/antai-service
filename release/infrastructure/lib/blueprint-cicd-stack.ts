@@ -2,6 +2,7 @@
 
 import * as cdk from '@aws-cdk/core';
 import * as ecs from '@aws-cdk/aws-ecs';
+import * as chatbot from '@aws-cdk/aws-chatbot';
 
 import { BlueprintAppStack } from './blueprint-app-stack';
 
@@ -15,6 +16,8 @@ import {
     AvrCodePipelineHotfix,
     AvrEcrCodePipelineProps,
     AvrCodePipelineMain,
+    AvrFargateContainerProps,
+    AvrBuildNotifications
 } from 'avr-cdk-utils';
 
 export class BlueprintCiCdStack extends AvrCiCdStack {
@@ -54,12 +57,19 @@ export class BlueprintCiCdStack extends AvrCiCdStack {
     }
 
     private getPipelineProps(): AvrEcrCodePipelineProps {
+        const chatbotSlackClient = new chatbot.SlackChannelConfiguration(this, 'slack', {
+            slackChannelConfigurationName: `blueprint-alerts`,
+            slackWorkspaceId: 'T02S31RB0', // avrios.slack.com
+            slackChannelId: 'C030GKTF490', // #blueprint-alerts
+        });
+
+        const notifictionSettings = new AvrBuildNotifications(chatbotSlackClient)
         return {
             ecrRepository: this.ecrRepository.repository,
             serviceImages: this.serviceImages,
             serviceShortName: this.props.serviceShortName,
             gitRepositoryName: this.props.gitRepositoryName,
-            codeBuildImage: AvrCodePipeline.getCustomAarch64Image(this),
+            buildNotifications: notifictionSettings,
         };
     }
 }
