@@ -16,7 +16,6 @@ import {
     AvrCodePipelineHotfix,
     AvrEcrCodePipelineProps,
     AvrCodePipelineMain,
-    AvrFargateContainerProps,
     AvrBuildNotifications
 } from 'avr-cdk-utils';
 
@@ -69,6 +68,7 @@ export class BlueprintCiCdStack extends AvrCiCdStack {
             serviceImages: this.serviceImages,
             serviceShortName: this.props.serviceShortName,
             gitRepositoryName: this.props.gitRepositoryName,
+            codeBuildImage: AvrCodePipeline.getCustomAarch64Image(this),
             buildNotifications: notifictionSettings,
         };
     }
