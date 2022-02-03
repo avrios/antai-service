@@ -4,7 +4,7 @@ phases:
   install:
     runtime-versions:
       java: corretto11
-      nodejs: 14
+      nodejs: 16
       docker: 20
 
   pre_build:
