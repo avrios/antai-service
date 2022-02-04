@@ -9,7 +9,10 @@
     - Your service name must match the repository name.
     - We recommend making the search case sensitive to appropriately update descriptions instead of identifiers where necessary. (e.g. `blueprint -> billing` and `Blueprint -> Billing`).
     - Failure to do so may result in a failed deployment of application and/or cicd stack.
-4. Decide whether you need build notifications in Slack by following [this guide](www.WillBeNotionDocs.com).
+4. Decide whether you need build notifications in Slack.
+    - Notifications are configured inside `release/infrastructure/lib/blueprint-cicd-stack.ts`
+    - Replace the slack channel ID with the channel ID you want to alert (must be created and/or retrieved separately). Or remove all references to slack & build notifications if you don't need them.
+      - There are a number of ways to get the channel ID, it might be in the 'about' tab of the channel.
 5. Provision the AWS CI/CD stack. See `AWS Infrastructure` below.
 6. Modify this `README.md` to be specific to your service.
 
