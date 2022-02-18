@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 
-import * as cdk from '@aws-cdk/core';
-import * as ecs from '@aws-cdk/aws-ecs';
-import * as chatbot from '@aws-cdk/aws-chatbot';
+import * as cdk from 'aws-cdk-lib';
+import { aws_ecs as ecs } from 'aws-cdk-lib';
+import { aws_chatbot as chatbot } from 'aws-cdk-lib';
+import { Construct } from 'constructs'
 
 import { BlueprintAppStack } from './blueprint-app-stack';
 
 import {
     AvrStage,
+    AvrAwsAccount,
     AvrCiCdStack,
     AvrCiCdStackProps,
     AvrEcrRepository,
@@ -23,7 +25,7 @@ export class BlueprintCiCdStack extends AvrCiCdStack {
     private readonly ecrRepository: AvrEcrRepository;
     private readonly serviceImages: {[key: string]: ecs.TagParameterContainerImage} = {};
 
-    constructor(scope: cdk.Construct, props: AvrCiCdStackProps) {
+    constructor(scope: Construct, props: AvrCiCdStackProps) {
         super(scope, props);
 
         this.ecrRepository = new AvrEcrRepository(this, {
@@ -40,7 +42,7 @@ export class BlueprintCiCdStack extends AvrCiCdStack {
         new AvrCodePipelineMain(this, pipelineProps);
     }
 
-    private createApplicationStack(scope: cdk.Construct, stage: AvrStage): void {
+    private createApplicationStack(scope: Construct, stage: AvrStage): void {
         const appStack = new BlueprintAppStack(scope, {
             stage,
             serviceShortName: this.props.serviceShortName,

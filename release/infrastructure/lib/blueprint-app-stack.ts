@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
-import * as cdk from '@aws-cdk/core';
-import * as ecr from '@aws-cdk/aws-ecr';
-import * as iam from '@aws-cdk/aws-iam';
+import * as cdk from 'aws-cdk-lib';
+import { aws_ecr as ecr } from 'aws-cdk-lib';
+import { aws_iam as iam } from 'aws-cdk-lib';
+import { Construct } from 'constructs'
 
 import {
     AvrAppStack,
@@ -25,7 +26,7 @@ export class BlueprintAppStack extends AvrAppStack {
     protected readonly props: BlueprintAppStackProps;
     public readonly fargateService: AvrFargateService;
 
-    constructor(scope: cdk.Construct, props: BlueprintAppStackProps) {
+    constructor(scope: Construct, props: BlueprintAppStackProps) {
         super(scope, props);
 
         this.props = props;
@@ -42,7 +43,7 @@ export class BlueprintAppStack extends AvrAppStack {
 }
 
 export class BlueprintDevStack extends cdk.Stack {
-    constructor(scope: cdk.Construct, serviceShortName: string) {
+    constructor(scope: Construct, serviceShortName: string) {
         super(scope, `${AvrStage.DEV.identifier}-${serviceShortName}-resources`, {
             env: AvrStage.DEV.env
         });
@@ -52,7 +53,7 @@ export class BlueprintDevStack extends cdk.Stack {
 }
 
 export class BlueprintResources {
-    constructor(scope: cdk.Construct, stage: AvrStage, taskRole?: iam.IGrantable) {
+    constructor(scope: Construct, stage: AvrStage, taskRole?: iam.IGrantable) {
         // sample resources
         const testTopic = new AvrTopic(scope, {
             topicName: 'blueprint-events',

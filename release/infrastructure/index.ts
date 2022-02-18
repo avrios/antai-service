@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import * as cdk from '@aws-cdk/core';
+import * as cdk from 'aws-cdk-lib';
 import { BlueprintCiCdStack } from './lib/blueprint-cicd-stack';
 import { BlueprintDevStack } from './lib/blueprint-app-stack';
 
