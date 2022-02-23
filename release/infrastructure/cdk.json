@@ -1,6 +1,4 @@
 {
   "app": "npx ts-node index.ts",
-  "context": {
-    "aws-cdk:enableDiffNoFail": "true"
-  }
+  "context": {}
 }
