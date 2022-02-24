@@ -13,7 +13,7 @@
     "typescript": "4.5.2"
   },
   "dependencies": {
-    "avr-cdk-utils": "2.0.0",
+    "avr-cdk-utils": "2.0.3",
     "aws-cdk": "2.13.0",
     "aws-cdk-lib": "2.13.0",
     "aws-sdk": "2.1044.0",
