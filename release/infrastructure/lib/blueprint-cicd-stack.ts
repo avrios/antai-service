@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-import * as cdk from 'aws-cdk-lib';
 import { aws_ecs as ecs } from 'aws-cdk-lib';
 import { aws_chatbot as chatbot } from 'aws-cdk-lib';
 import { Construct } from 'constructs'
@@ -9,7 +8,6 @@ import { BlueprintAppStack } from './blueprint-app-stack';
 
 import {
     AvrStage,
-    AvrAwsAccount,
     AvrCiCdStack,
     AvrCiCdStackProps,
     AvrEcrRepository,

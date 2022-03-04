@@ -7,17 +7,13 @@
     "cdk": "cdk"
   },
   "devDependencies": {
-    "@types/node": "16.11.12",
-    "@types/uuid": "8.3.3",
-    "ts-node": "10.4.0",
-    "typescript": "4.5.2"
+    "@types/node": "16.11.26",
+    "@types/uuid": "8.3.4",
+    "aws-cdk": "2.13.0",
+    "ts-node": "10.6.0",
+    "typescript": "4.6.2"
   },
   "dependencies": {
-    "avr-cdk-utils": "2.0.3",
-    "aws-cdk": "2.13.0",
-    "aws-cdk-lib": "2.13.0",
-    "aws-sdk": "2.1044.0",
-    "constructs": "10.0.64",
-    "uuid": "8.3.2"
+    "avr-cdk-utils": "2.1.0"
   }
 }

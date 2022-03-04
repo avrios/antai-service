@@ -5,13 +5,12 @@ phases:
     runtime-versions:
       java: corretto11
       nodejs: 16
-      docker: 20
+      avrios: 1
+    commands:
+      - restore-maven-cache -u root
 
   pre_build:
     commands:
-      - aws codeartifact login --tool npm --repository avrios-npm --domain avrios
-      - export CODEARTIFACT_TOKEN=`aws codeartifact get-authorization-token --domain avrios --query authorizationToken --output text`
-      - aws ecr get-login-password | docker login --username AWS --password-stdin ${REPOSITORY_URI}
       - MAJOR_VERSION=1
       - RELEASE_VERSION=${RELEASE_VERSION_PREFIX}${MAJOR_VERSION}.${CODEBUILD_BUILD_NUMBER}${RELEASE_VERSION_POSTFIX}
       - echo ${RELEASE_VERSION}
@@ -24,7 +23,7 @@ phases:
 
   post_build:
     commands:
-      - rm -rf /root/.m2/repository/com/avrios/blueprint
+      - prepare-maven-cache -u root -p com/avrios/blueprint
 
 artifacts:
   files:
@@ -34,5 +33,4 @@ artifacts:
 
 cache:
   paths:
-    - '/root/.m2/**/*'
-    - '/root/.npm/**/*'
+    - '/root/maven_cache.tar'
