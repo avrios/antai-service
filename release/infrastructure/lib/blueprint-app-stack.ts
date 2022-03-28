@@ -14,6 +14,7 @@ import {
     AvrJob,
     AvrTopic,
     AvrQueue,
+    AvrServiceDlqMonitor,
     AvrStage
 } from 'avr-cdk-utils';
 
@@ -39,6 +40,12 @@ export class BlueprintAppStack extends AvrAppStack {
         });
 
         new BlueprintResources(this, this.props.stage, this.fargateService.getTaskRole());
+
+        new AvrServiceDlqMonitor(this, {
+            stage: this.props.stage,
+            serviceShortName: this.props.serviceShortName,
+            slackChannelIdentifier: '@slack-blueprint-alerts'
+        });
     }
 }
 

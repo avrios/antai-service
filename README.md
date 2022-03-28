@@ -1,21 +1,5 @@
 # Avrios Blueprint Service
 
-## How to create a service from this template
-
-1. Click the 'Use This Template' button from within Github.
-2. Set an appropriate name for the repository, suffixed with `-service`:
-    - e.g. If the service is called `billing`, set the repository name to `billing-service`.
-3. Replace *all* references to `blueprint` and descriptions within the repository with your project specific information.
-    - Your service name must match the repository name.
-    - We recommend making the search case sensitive to appropriately update descriptions instead of identifiers where necessary. (e.g. `blueprint -> billing` and `Blueprint -> Billing`).
-    - Failure to do so may result in a failed deployment of application and/or cicd stack.
-4. Decide whether you need build notifications in Slack.
-    - Notifications are configured inside `release/infrastructure/lib/blueprint-cicd-stack.ts`
-    - Replace the slack channel ID with the channel ID you want to alert (must be created and/or retrieved separately). Or remove all references to slack & build notifications if you don't need them.
-      - There are a number of ways to get the channel ID, it might be in the 'about' tab of the channel.
-5. Provision the AWS CI/CD stack. See `AWS Infrastructure` below.
-6. Modify this `README.md` to be specific to your service.
-
 ## Build and run locally
 ### Building
 The project uses maven:
@@ -53,7 +37,7 @@ Through *Spring Actuator*, the following default REST endpoints expose informati
 * `/healthCheck`: Reporting overall service health, in order to determine container health and system uptime.
 * `/info`: Reports overall deployment information, such as the version running as well as when it was built.
 
-### AWS Infrastructure
+# AWS Infrastructure
 In `release/infrastructure`, run `mvn clean install -P<profile>` with any of the following documented profiles:
 
 | Profile                | Description                   | Notes                                                                                                                                           |   |   |
@@ -62,4 +46,23 @@ In `release/infrastructure`, run `mvn clean install -P<profile>` with any of the
 | `deploy-cicd-stack`    | deploy an updated CI/CD stack |  Always deployed and updated from localhost, this creates the pipelines required for automated tests at a PR and deploying to all environments.                                                                                                                                               |   |   |
 | `deploy-dev-resources` | deploy dev resources          |  The dev resources are a subset of the AWS infrastructure to be used during "local" development   (e.g. when you run the app through IntelliJ). |   |   |
 
+# Deployments
+
+Merges to trunk (`main` Git Branch) trigger a Codepipeline job within the tooling account which deploys to test & staging. A manual step is then required for final deployment to prod. You can find the Codepipeline project [here](https://eu-central-1.console.aws.amazon.com/codesuite/codepipeline/pipelines/blueprint-main/view?region=eu-central-1). This is true for both application code and AWS infrastructure*.
+
+*The exception being tooling infrastructure, which must be deployment manually. See `AWS Infrastructure` above.
+
 # Troubleshooting
+
+
+# Contributing
+
+Anyone may contribute to the project. Propose your change via PR ensuring:
+- All tests pass.
+- Code has been formatted and linted.
+  - As a Git Hook
+    - `mvn dependency:unpack@update-checkstyle -U`
+    - `cp target/checkstyle/pre-commit.py .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit`
+  - Through IntelliJ
+    - Install CheckStyle plugin Preferences -> Plugins -> CheckStyle-IDEA
+- Git history adheres to our [Conventional Commit Strategy guidelines](https://github.com/avrios/core-service/wiki/Git-Commit-Guidelines).
