@@ -127,10 +127,6 @@
                             <value>${exec.config.stage}</value>
                         </systemProperty>
                         <systemProperty>
-                            <key>log4j.configurationFile</key>
-                            <value>log4j2-dev.xml</value>
-                        </systemProperty>
-                        <systemProperty>
                             <key>jasypt.encryptor.password</key>
                             <value>secret</value>
                         </systemProperty>
