@@ -62,14 +62,14 @@ export class BlueprintCiCdStack extends AvrCiCdStack {
             slackChannelId: 'C030GKTF490', // #blueprint-alerts
         });
 
-        const notifictionSettings = new AvrBuildNotifications(chatbotSlackClient)
+        const notificationSettings = new AvrBuildNotifications(chatbotSlackClient)
         return {
             ecrRepository: this.ecrRepository.repository,
             serviceImages: this.serviceImages,
             serviceShortName: this.props.serviceShortName,
             gitRepositoryName: this.props.gitRepositoryName,
             codeBuildImage: AvrCodePipeline.getCustomAarch64Image(this),
-            buildNotifications: notifictionSettings,
+            buildNotifications: notificationSettings,
         };
     }
 }

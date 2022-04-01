@@ -21,7 +21,8 @@
       - There are a number of ways to get the channel ID, it might be in the 'about' tab of the channel.
 
     b. Set up Datadog Synthetics.
-    - Create a new Synthetics API test [here](https://app.datadoghq.eu/synthetics/tests).
+    - Create a new Synthetics API test [here](https://app.datadoghq.eu/synthetics/tests). 
+      If you clone an existing test (recommended), consider muting the test initially as the application is not yet deployed to PRODUCTION and therefore would trigger an alert.
 
     c. Set up a new Bugsnag Project.
     - This can be done on the [Bugsnag Platform](https://app.bugsnag.com/organizations/avrios/stability-center). If you do not have permissions you may need to contact a Team Lead or admin.
@@ -34,6 +35,10 @@
     d. Opt-out of SQS DLQ Monitor if you don't need it.
     - Projects come enabled with an SQS DLQ Datadog monitor. This can be found in `release/infrastructure/lib/blueprint-app-stack.ts` in the `AvrServiceDlqMonitor` Class. Configure it here or remove it if you don't need it.
     - Documentation on how to configure it appropriately may be found [here](https://github.com/avrios/cdk-utils/blob/main/src/aws/datadog/servicedlqmonitor.ts#L15).
+    - You need to create a [Datadog application key](https://app.datadoghq.eu/organization-settings/application-keys) for each service having an SQS DLQ Monitor.
+      Copy the generated key into [AWS Parameter Store](https://eu-central-1.console.aws.amazon.com/systems-manager/parameters/?region=eu-central-1&tab=Table) 
+      of [each environment](https://github.com/avrios/cdk-utils/blob/main/src/aws/datadog/servicedlqmonitor.ts#L74).
+      
 
 6. Documentation & Service Architecture
    - [Ensure the relevant child Notion pages](https://www.notion.so/avrios/Product-Delivery-761187cf730e4f98a9a2ea033a18c4cd) have been created clearly outlining what your service does, what its purpose is and how it works.
