@@ -23,7 +23,7 @@
         <aws.avrios.stage>dev-${DEV_LOCAL_ENV:common}</aws.avrios.stage>
 
         <!-- internal dependency versions -->
-        <girders.version>RELEASE-1.78</girders.version>
+        <girders.version>RELEASE-1.79</girders.version>
         <build-helper-maven-plugin.version>3.3.0</build-helper-maven-plugin.version>
     </properties>
 
