@@ -1,13 +1,19 @@
 version: 0.2
 
+env:
+  shell: bash
+
+run-as: codebuild-user
+
 phases:
   install:
+    run-as: root
     runtime-versions:
       java: corretto11
       nodejs: 16
       avrios: 1
     commands:
-      - restore-maven-cache -u root
+      - restore-maven-cache -u codebuild-user
 
   pre_build:
     commands:
@@ -18,12 +24,12 @@ phases:
   build:
     commands:
       - mvn versions:set versions:update-child-modules -DnewVersion=${RELEASE_VERSION} -s .build/codeartifact.xml
-      - mvn clean deploy -s .build/codeartifact.xml
+      - HOME=/home/codebuild-user mvn clean deploy -s .build/codeartifact.xml
       - printf "{\"imageTag\":\"${RELEASE_VERSION}\"}" > imagedefinitions.json
 
   post_build:
     commands:
-      - prepare-maven-cache -u root -p com/avrios/blueprint
+      - prepare-maven-cache -u codebuild-user -p com/avrios/blueprint
 
 artifacts:
   files:
@@ -33,4 +39,4 @@ artifacts:
 
 cache:
   paths:
-    - '/root/maven_cache.tar'
+    - '/home/codebuild-user/maven_cache.tar'

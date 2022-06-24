@@ -2,7 +2,10 @@
 
 import * as cdk from 'aws-cdk-lib';
 import { aws_ecr as ecr } from 'aws-cdk-lib';
+import { aws_ec2 as ec2 } from 'aws-cdk-lib';
 import { aws_iam as iam } from 'aws-cdk-lib';
+import { aws_rds as rds } from 'aws-cdk-lib';
+import { aws_logs as logs } from 'aws-cdk-lib';
 import { Construct } from 'constructs'
 
 import {
@@ -14,8 +17,10 @@ import {
     AvrJob,
     AvrTopic,
     AvrQueue,
+    AvrRdsInstance,
     AvrServiceDlqMonitor,
-    AvrStage
+    AvrStage,
+    AvrStageConfig
 } from 'avr-cdk-utils';
 
 interface BlueprintAppStackProps extends AvrAppStackProps {
@@ -37,6 +42,24 @@ export class BlueprintAppStack extends AvrAppStack {
             stage: this.props.stage,
             repository: this.props.repository,
             taskContainerProps: this.props.taskContainerProps
+        });
+
+        new AvrRdsInstance(this, {
+            stage: this.props.stage,
+            serviceShortName: this.props.serviceShortName,
+            allocatedStorage: AvrStageConfig.all(100),
+            maxAllocatedStorage: AvrStageConfig.all(200),
+            instanceType: AvrStageConfig.all(ec2.InstanceType.of(ec2.InstanceClass.T4G, ec2.InstanceSize.MICRO)),
+            storageType: AvrStageConfig.all(rds.StorageType.GP2),
+            engine: rds.DatabaseInstanceEngine.postgres({
+                version: rds.PostgresEngineVersion.VER_14_1,
+            }),
+            backupRetention: AvrStageConfig.each(
+                cdk.Duration.days(0),
+                cdk.Duration.days(1),
+                cdk.Duration.days(0),
+                cdk.Duration.days(0)),
+            cloudwatchLogsRetention: AvrStageConfig.all(logs.RetentionDays.ONE_WEEK)
         });
 
         new BlueprintResources(this, this.props.stage, this.fargateService.getTaskRole());

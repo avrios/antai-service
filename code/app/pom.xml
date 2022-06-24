@@ -22,8 +22,19 @@
         <!--suppress UnresolvedMavenProperty -->
         <aws.avrios.stage>dev-${DEV_LOCAL_ENV:common}</aws.avrios.stage>
 
+        <spring.flyway.placeholders.schema>blueprint</spring.flyway.placeholders.schema>
+        <spring.datasource.url>jdbc:postgresql://localhost:5432/avrios?prepareThreshold=3&amp;currentSchema=${spring.flyway.placeholders.schema}</spring.datasource.url>
+        <spring.datasource.username>blueprint</spring.datasource.username>
+        <spring.datasource.password>blueprint</spring.datasource.password>
+        <spring.flyway.password>flyway</spring.flyway.password>
+
         <!-- internal dependency versions -->
-        <girders.version>RELEASE-1.88</girders.version>
+        <girders.version>RELEASE-1.90</girders.version>
+
+        <!-- external dependency versions -->
+        <embedded-database-spring-test.version>2.1.0</embedded-database-spring-test.version>
+        <embedded-postgres.version>1.3.1</embedded-postgres.version>
+        <embedded-postgres-binary.version>14.2.0</embedded-postgres-binary.version>
         <build-helper-maven-plugin.version>3.3.0</build-helper-maven-plugin.version>
     </properties>
 
@@ -52,6 +63,11 @@
         </dependency>
 
         <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>com.avrios.girders</groupId>
             <artifactId>common</artifactId>
             <version>${girders.version}</version>
@@ -76,8 +92,32 @@
         </dependency>
 
         <dependency>
+            <groupId>com.avrios.girders</groupId>
+            <artifactId>persistence</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>com.github.ulisesbocchio</groupId>
             <artifactId>jasypt-spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- **************************** -->
+        <!-- Spring Boot JPA Dependencies -->
+        <!-- **************************** -->
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
         </dependency>
 
         <!-- ******************** -->
@@ -88,7 +128,33 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>io.zonky.test</groupId>
+            <artifactId>embedded-database-spring-test</artifactId>
+            <version>${embedded-database-spring-test.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.zonky.test</groupId>
+            <artifactId>embedded-postgres</artifactId>
+            <version>${embedded-postgres.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.zonky.test.postgres</groupId>
+                <artifactId>embedded-postgres-binaries-bom</artifactId>
+                <version>${embedded-postgres-binary.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <build>
         <!-- final name of the repackaged jar file: <finalName>.jar -->
@@ -96,6 +162,18 @@
         <finalName>${avr.service.name}</finalName>
 
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <environmentVariables>
+                        <!-- required for running embedded PostgreSQL on MacOS -->
+                        <!-- see: https://github.com/zonkyio/embedded-postgres/issues/11#issuecomment-533468269 -->
+                        <LC_CTYPE>en_US.UTF-8</LC_CTYPE>
+                        <LC_ALL>en_US.UTF-8</LC_ALL>
+                    </environmentVariables>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
@@ -160,4 +238,43 @@
             </plugin>
         </plugins>
     </build>
+
+
+    <profiles>
+        <profile>
+            <id>mac-m1</id>
+            <activation>
+                <os>
+                    <name>Mac OS X</name>
+                    <family>mac</family>
+                    <arch>aarch64</arch>
+                </os>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>io.zonky.test.postgres</groupId>
+                    <artifactId>embedded-postgres-binaries-darwin-amd64</artifactId>
+                    <scope>runtime</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+
+        <profile>
+            <id>codebuild</id>
+            <activation>
+                <os>
+                    <name>linux</name>
+                    <family>unix</family>
+                    <arch>aarch64</arch>
+                </os>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>io.zonky.test.postgres</groupId>
+                    <artifactId>embedded-postgres-binaries-linux-arm64v8</artifactId>
+                    <scope>runtime</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
 </project>

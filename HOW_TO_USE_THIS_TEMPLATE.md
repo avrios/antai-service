@@ -38,9 +38,19 @@
     - You need to create a [Datadog application key](https://app.datadoghq.eu/organization-settings/application-keys) for each service having an SQS DLQ Monitor.
       Copy the generated key into [AWS Parameter Store](https://eu-central-1.console.aws.amazon.com/systems-manager/parameters/?region=eu-central-1&tab=Table) 
       of [each environment](https://github.com/avrios/cdk-utils/blob/main/src/aws/datadog/servicedlqmonitor.ts#L74).
-      
 
-6. Documentation & Service Architecture
+6. RDS
+
+   a.The service will create its RDS instance. 
+   
+   b.You would need to add the password to the [parameter store in AWS](https://eu-central-1.console.aws.amazon.com/systems-manager/parameters/test/blueprint-service/rds-flyway.password/description?region=eu-central-1&tab=Table#list_parameter_filters=Name:Contains:blue). Save the password in `parameters/< environment >/< your-service >`. Same password should be used for the `spring.flyway.password` in the application properties. Only printable ASCII characters besides `/`, `@`, `"`, ` ` may be used. This should be done for each environment.
+   
+   c.In order to delete the RDS instance, find it in [databases](https://eu-central-1.console.aws.amazon.com/rds/home?region=eu-central-1#databases:) and modify it by un-checking the box `Enable deletion protection`. 
+
+   d.On test environment developers can delete it by switching to `dev admin` role, while for staging and prod only users with administrator role have this permission.
+
+
+7. Documentation & Service Architecture
    - [Ensure the relevant child Notion pages](https://www.notion.so/avrios/Product-Delivery-761187cf730e4f98a9a2ea033a18c4cd) have been created clearly outlining what your service does, what its purpose is and how it works.
    - Tips
      - Generally we try do adhere to the [arc24 standard](https://arc42.org/overview) when writing documentation.
@@ -48,8 +58,8 @@
      - [Google's style guide highlights](https://developers.google.com/style/highlights) might be a good place if you are unsure of terminology or phrasing.
      - When writing documentation keep in mind what information _you_ would like to know about a service you are unfamiliar with. What information would be helpful to you to begin developing on it?
 
-7. Modify `README.md` to be specific to your service.
+8. Modify `README.md` to be specific to your service.
 
-8. Provision the AWS CI/CD stack. See `AWS Infrastructure` in `README.md`.
+9. Provision the AWS CI/CD stack. See `AWS Infrastructure` in `README.md`.
 
-9. Delete this file & PR all changes to your new project for review.
+10. Delete this file & PR all changes to your new project for review.

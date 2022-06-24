@@ -91,5 +91,17 @@
         ]
       }
     ]
+  },
+  "security-group:account=821747761766:region=eu-central-1:securityGroupId=sg-05976637494970ba8": {
+    "securityGroupId": "sg-05976637494970ba8",
+    "allowAllOutbound": false
+  },
+  "security-group:account=541825097226:region=eu-central-1:securityGroupId=sg-003d488880c5ab25f": {
+    "securityGroupId": "sg-003d488880c5ab25f",
+    "allowAllOutbound": false
+  },
+  "security-group:account=324932872368:region=eu-central-1:securityGroupId=sg-d9659ab3": {
+    "securityGroupId": "sg-d9659ab3",
+    "allowAllOutbound": false
   }
 }
