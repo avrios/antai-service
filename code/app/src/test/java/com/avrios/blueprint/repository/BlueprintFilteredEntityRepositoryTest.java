@@ -21,7 +21,7 @@ class BlueprintFilteredEntityRepositoryTest {
 
     @BeforeEach
     void setup() {
-        AvriosUserDetails technicalUserDetails = AvriosUserDetails.builder().build().builder()
+        AvriosUserDetails technicalUserDetails = AvriosUserDetails.builder()
                 .companyUuid(AUTHENTICATED_COMPANY_UUID)
                 .build();
         TestingAuthenticationToken authentication = new TestingAuthenticationToken(technicalUserDetails, null);

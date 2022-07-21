@@ -13,5 +13,5 @@ import org.springframework.context.annotation.Import;
 @AvrEnableSqsHealth
 @Configuration
 @Import({DefaultSqsConfiguration.class, DefaultSnsConfiguration.class})
-public class AwsMessagingConfig {
+public class AwsMessagingConfiguration {
 }

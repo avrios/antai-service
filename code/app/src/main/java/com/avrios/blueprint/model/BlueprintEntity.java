@@ -7,7 +7,7 @@ import javax.persistence.Entity;
 import javax.persistence.Table;
 
 @Entity
-@Table(name = "t_blueprint_entity")
 @NoArgsConstructor
+@Table(name = "t_blueprint_entity")
 public class BlueprintEntity extends BaseEntity {
 }

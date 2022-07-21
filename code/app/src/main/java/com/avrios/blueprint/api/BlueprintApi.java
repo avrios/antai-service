@@ -10,15 +10,14 @@ import static com.avrios.girders.security.session.SecurityRoleName.READ_WRITE_US
 
 @RestController
 public class BlueprintApi {
-
     @GetMapping
-    public String helloWorld(){
+    public String helloWorld() {
         return "Hello world";
     }
 
     @PostMapping
     @Secured({READ_WRITE_USER, COMPANY_ADMIN})
-    public String saveWorld(){
+    public String saveWorld() {
         return "Saved the world";
     }
 }

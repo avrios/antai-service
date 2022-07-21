@@ -5,12 +5,13 @@ import com.avrios.girders.security.cors.DefaultCorsConfiguration;
 import com.avrios.girders.security.jwt.JwtConfiguration;
 import com.avrios.girders.security.jwt.JwtFilter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
@@ -19,11 +20,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @AvrEnableCors
 @RequiredArgsConstructor
 @EnableGlobalMethodSecurity(prePostEnabled = true, jsr250Enabled = true, securedEnabled = true)
-public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+public class WebSecurityConfiguration {
     private final JwtFilter jwtFilter;
 
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .sessionManagement().disable()
                 .cors().and()
@@ -33,5 +34,6 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .authorizeRequests()
                 .regexMatchers("^/healthCheck.*").permitAll()
                 .anyRequest().authenticated();
+        return http.build();
     }
 }
