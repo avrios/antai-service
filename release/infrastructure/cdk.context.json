@@ -30,6 +30,74 @@
       }
     ]
   },
+  "vpc-provider:account=821747761766:filter.tag:Name=Avrios:region=eu-central-1:returnAsymmetricSubnets=true": {
+    "vpcId": "vpc-03cc79866e6e3a8ef",
+    "vpcCidrBlock": "10.2.0.0/16",
+    "availabilityZones": [],
+    "vpnGatewayId": "vgw-0578f118afe6693e5",
+    "subnetGroups": [
+      {
+        "name": "Private",
+        "type": "Private",
+        "subnets": [
+          {
+            "subnetId": "subnet-095b53c5da21c819f",
+            "cidr": "10.2.8.0/21",
+            "availabilityZone": "eu-central-1a",
+            "routeTableId": "rtb-0b36f9e8483a47c64"
+          },
+          {
+            "subnetId": "subnet-0b5d33861c1ed150b",
+            "cidr": "10.2.32.0/19",
+            "availabilityZone": "eu-central-1a",
+            "routeTableId": "rtb-0cc0e6e5975929925"
+          },
+          {
+            "subnetId": "subnet-056cbc6ac9a79d571",
+            "cidr": "10.2.16.0/21",
+            "availabilityZone": "eu-central-1a",
+            "routeTableId": "rtb-0592bf97fb4268720"
+          },
+          {
+            "subnetId": "subnet-0fdc87759e0818c5e",
+            "cidr": "10.2.80.0/21",
+            "availabilityZone": "eu-central-1b",
+            "routeTableId": "rtb-0818687670c378f08"
+          },
+          {
+            "subnetId": "subnet-0382b264912428ff5",
+            "cidr": "10.2.96.0/19",
+            "availabilityZone": "eu-central-1b",
+            "routeTableId": "rtb-0fcc0da0861ed6374"
+          },
+          {
+            "subnetId": "subnet-0593676586242f42f",
+            "cidr": "10.2.72.0/21",
+            "availabilityZone": "eu-central-1b",
+            "routeTableId": "rtb-0e385c5e2ce7949a5"
+          }
+        ]
+      },
+      {
+        "name": "Public",
+        "type": "Public",
+        "subnets": [
+          {
+            "subnetId": "subnet-0606199cf03d96cc8",
+            "cidr": "10.2.0.0/21",
+            "availabilityZone": "eu-central-1a",
+            "routeTableId": "rtb-05791ca13f32be147"
+          },
+          {
+            "subnetId": "subnet-048fd3979b499ec65",
+            "cidr": "10.2.64.0/21",
+            "availabilityZone": "eu-central-1b",
+            "routeTableId": "rtb-0e905404e92896830"
+          }
+        ]
+      }
+    ]
+  },
   "vpc-provider:account=541825097226:filter.vpc-id=vpc-98aa7df2:region=eu-central-1:returnAsymmetricSubnets=true": {
     "vpcId": "vpc-98aa7df2",
     "vpcCidrBlock": "172.31.0.0/16",
@@ -56,6 +124,74 @@
             "cidr": "172.31.0.0/20",
             "availabilityZone": "eu-central-1c",
             "routeTableId": "rtb-96632afc"
+          }
+        ]
+      }
+    ]
+  },
+  "vpc-provider:account=541825097226:filter.tag:Name=Avrios:region=eu-central-1:returnAsymmetricSubnets=true": {
+    "vpcId": "vpc-0df94a3fdc140414f",
+    "vpcCidrBlock": "10.1.0.0/16",
+    "availabilityZones": [],
+    "vpnGatewayId": "vgw-0207cf0673327a115",
+    "subnetGroups": [
+      {
+        "name": "Private",
+        "type": "Private",
+        "subnets": [
+          {
+            "subnetId": "subnet-078d6df29474a65e5",
+            "cidr": "10.1.32.0/19",
+            "availabilityZone": "eu-central-1a",
+            "routeTableId": "rtb-0bc55729c73d53998"
+          },
+          {
+            "subnetId": "subnet-09ae1df0b2819adc2",
+            "cidr": "10.1.16.0/21",
+            "availabilityZone": "eu-central-1a",
+            "routeTableId": "rtb-0de436459fc93622e"
+          },
+          {
+            "subnetId": "subnet-0b359f79609b424ca",
+            "cidr": "10.1.8.0/21",
+            "availabilityZone": "eu-central-1a",
+            "routeTableId": "rtb-02d8330d4d4f3d98b"
+          },
+          {
+            "subnetId": "subnet-0effc2e605007d133",
+            "cidr": "10.1.96.0/19",
+            "availabilityZone": "eu-central-1b",
+            "routeTableId": "rtb-0c800daf2544a55b1"
+          },
+          {
+            "subnetId": "subnet-0698a27fa22d87618",
+            "cidr": "10.1.72.0/21",
+            "availabilityZone": "eu-central-1b",
+            "routeTableId": "rtb-0ec2bbf16915c046b"
+          },
+          {
+            "subnetId": "subnet-0a06993cb54700f36",
+            "cidr": "10.1.80.0/21",
+            "availabilityZone": "eu-central-1b",
+            "routeTableId": "rtb-0d22c441822c79459"
+          }
+        ]
+      },
+      {
+        "name": "Public",
+        "type": "Public",
+        "subnets": [
+          {
+            "subnetId": "subnet-02c3390c4089d883f",
+            "cidr": "10.1.0.0/21",
+            "availabilityZone": "eu-central-1a",
+            "routeTableId": "rtb-0d82938c22db36036"
+          },
+          {
+            "subnetId": "subnet-0df34fb53b2f72e1b",
+            "cidr": "10.1.64.0/21",
+            "availabilityZone": "eu-central-1b",
+            "routeTableId": "rtb-0524274ccc1b6467a"
           }
         ]
       }
@@ -103,5 +239,277 @@
   "security-group:account=324932872368:region=eu-central-1:securityGroupId=sg-d9659ab3": {
     "securityGroupId": "sg-d9659ab3",
     "allowAllOutbound": false
+  },
+  "vpc-provider:account=324932872368:filter.tag:Name=Avrios:region=eu-central-1:returnAsymmetricSubnets=true": {
+    "vpcId": "vpc-0a54a840e8427d3d1",
+    "vpcCidrBlock": "10.0.0.0/16",
+    "availabilityZones": [],
+    "vpnGatewayId": "vgw-0444f3268faf74f5e",
+    "subnetGroups": [
+      {
+        "name": "Public",
+        "type": "Public",
+        "subnets": [
+          {
+            "subnetId": "subnet-05a1603d3835bdf1f",
+            "cidr": "10.0.0.0/21",
+            "availabilityZone": "eu-central-1a",
+            "routeTableId": "rtb-0387930b4b4ef53e1"
+          },
+          {
+            "subnetId": "subnet-0bd72720310da1aef",
+            "cidr": "10.0.64.0/21",
+            "availabilityZone": "eu-central-1b",
+            "routeTableId": "rtb-0ac0fd80aaee42fa9"
+          }
+        ]
+      },
+      {
+        "name": "Private",
+        "type": "Private",
+        "subnets": [
+          {
+            "subnetId": "subnet-09ca367aa0a18326b",
+            "cidr": "10.0.8.0/21",
+            "availabilityZone": "eu-central-1a",
+            "routeTableId": "rtb-027fa7bdea09915b4"
+          },
+          {
+            "subnetId": "subnet-0c4ca97c6962f1253",
+            "cidr": "10.0.32.0/19",
+            "availabilityZone": "eu-central-1a",
+            "routeTableId": "rtb-026239261181fe166"
+          },
+          {
+            "subnetId": "subnet-0cf4e0ba423051a99",
+            "cidr": "10.0.16.0/21",
+            "availabilityZone": "eu-central-1a",
+            "routeTableId": "rtb-00fa044c72f13dbe9"
+          },
+          {
+            "subnetId": "subnet-03cdb82cd6d3159aa",
+            "cidr": "10.0.96.0/19",
+            "availabilityZone": "eu-central-1b",
+            "routeTableId": "rtb-0713951d8947e4dc8"
+          },
+          {
+            "subnetId": "subnet-06c0d23f801ab12d9",
+            "cidr": "10.0.80.0/21",
+            "availabilityZone": "eu-central-1b",
+            "routeTableId": "rtb-009ba95ece0ac5f9b"
+          },
+          {
+            "subnetId": "subnet-0d4b76c737a3d420f",
+            "cidr": "10.0.72.0/21",
+            "availabilityZone": "eu-central-1b",
+            "routeTableId": "rtb-07d6cfacb4ee81d12"
+          }
+        ]
+      }
+    ]
+  },
+  "vpc-provider:account=821747761766:filter.vpc-id=vpc-03cc79866e6e3a8ef:region=eu-central-1:returnAsymmetricSubnets=true": {
+    "vpcId": "vpc-03cc79866e6e3a8ef",
+    "vpcCidrBlock": "10.2.0.0/16",
+    "availabilityZones": [],
+    "vpnGatewayId": "vgw-0578f118afe6693e5",
+    "subnetGroups": [
+      {
+        "name": "Private",
+        "type": "Private",
+        "subnets": [
+          {
+            "subnetId": "subnet-095b53c5da21c819f",
+            "cidr": "10.2.8.0/21",
+            "availabilityZone": "eu-central-1a",
+            "routeTableId": "rtb-0b36f9e8483a47c64"
+          },
+          {
+            "subnetId": "subnet-0b5d33861c1ed150b",
+            "cidr": "10.2.32.0/19",
+            "availabilityZone": "eu-central-1a",
+            "routeTableId": "rtb-0cc0e6e5975929925"
+          },
+          {
+            "subnetId": "subnet-056cbc6ac9a79d571",
+            "cidr": "10.2.16.0/21",
+            "availabilityZone": "eu-central-1a",
+            "routeTableId": "rtb-0592bf97fb4268720"
+          },
+          {
+            "subnetId": "subnet-0fdc87759e0818c5e",
+            "cidr": "10.2.80.0/21",
+            "availabilityZone": "eu-central-1b",
+            "routeTableId": "rtb-0818687670c378f08"
+          },
+          {
+            "subnetId": "subnet-0382b264912428ff5",
+            "cidr": "10.2.96.0/19",
+            "availabilityZone": "eu-central-1b",
+            "routeTableId": "rtb-0fcc0da0861ed6374"
+          },
+          {
+            "subnetId": "subnet-0593676586242f42f",
+            "cidr": "10.2.72.0/21",
+            "availabilityZone": "eu-central-1b",
+            "routeTableId": "rtb-0e385c5e2ce7949a5"
+          }
+        ]
+      },
+      {
+        "name": "Public",
+        "type": "Public",
+        "subnets": [
+          {
+            "subnetId": "subnet-0606199cf03d96cc8",
+            "cidr": "10.2.0.0/21",
+            "availabilityZone": "eu-central-1a",
+            "routeTableId": "rtb-05791ca13f32be147"
+          },
+          {
+            "subnetId": "subnet-048fd3979b499ec65",
+            "cidr": "10.2.64.0/21",
+            "availabilityZone": "eu-central-1b",
+            "routeTableId": "rtb-0e905404e92896830"
+          }
+        ]
+      }
+    ]
+  },
+  "vpc-provider:account=541825097226:filter.vpc-id=vpc-0df94a3fdc140414f:region=eu-central-1:returnAsymmetricSubnets=true": {
+    "vpcId": "vpc-0df94a3fdc140414f",
+    "vpcCidrBlock": "10.1.0.0/16",
+    "availabilityZones": [],
+    "vpnGatewayId": "vgw-0207cf0673327a115",
+    "subnetGroups": [
+      {
+        "name": "Private",
+        "type": "Private",
+        "subnets": [
+          {
+            "subnetId": "subnet-078d6df29474a65e5",
+            "cidr": "10.1.32.0/19",
+            "availabilityZone": "eu-central-1a",
+            "routeTableId": "rtb-0bc55729c73d53998"
+          },
+          {
+            "subnetId": "subnet-09ae1df0b2819adc2",
+            "cidr": "10.1.16.0/21",
+            "availabilityZone": "eu-central-1a",
+            "routeTableId": "rtb-0de436459fc93622e"
+          },
+          {
+            "subnetId": "subnet-0b359f79609b424ca",
+            "cidr": "10.1.8.0/21",
+            "availabilityZone": "eu-central-1a",
+            "routeTableId": "rtb-02d8330d4d4f3d98b"
+          },
+          {
+            "subnetId": "subnet-0effc2e605007d133",
+            "cidr": "10.1.96.0/19",
+            "availabilityZone": "eu-central-1b",
+            "routeTableId": "rtb-0c800daf2544a55b1"
+          },
+          {
+            "subnetId": "subnet-0698a27fa22d87618",
+            "cidr": "10.1.72.0/21",
+            "availabilityZone": "eu-central-1b",
+            "routeTableId": "rtb-0ec2bbf16915c046b"
+          },
+          {
+            "subnetId": "subnet-0a06993cb54700f36",
+            "cidr": "10.1.80.0/21",
+            "availabilityZone": "eu-central-1b",
+            "routeTableId": "rtb-0d22c441822c79459"
+          }
+        ]
+      },
+      {
+        "name": "Public",
+        "type": "Public",
+        "subnets": [
+          {
+            "subnetId": "subnet-02c3390c4089d883f",
+            "cidr": "10.1.0.0/21",
+            "availabilityZone": "eu-central-1a",
+            "routeTableId": "rtb-0d82938c22db36036"
+          },
+          {
+            "subnetId": "subnet-0df34fb53b2f72e1b",
+            "cidr": "10.1.64.0/21",
+            "availabilityZone": "eu-central-1b",
+            "routeTableId": "rtb-0524274ccc1b6467a"
+          }
+        ]
+      }
+    ]
+  },
+  "vpc-provider:account=324932872368:filter.vpc-id=vpc-0a54a840e8427d3d1:region=eu-central-1:returnAsymmetricSubnets=true": {
+    "vpcId": "vpc-0a54a840e8427d3d1",
+    "vpcCidrBlock": "10.0.0.0/16",
+    "availabilityZones": [],
+    "vpnGatewayId": "vgw-0444f3268faf74f5e",
+    "subnetGroups": [
+      {
+        "name": "Public",
+        "type": "Public",
+        "subnets": [
+          {
+            "subnetId": "subnet-05a1603d3835bdf1f",
+            "cidr": "10.0.0.0/21",
+            "availabilityZone": "eu-central-1a",
+            "routeTableId": "rtb-0387930b4b4ef53e1"
+          },
+          {
+            "subnetId": "subnet-0bd72720310da1aef",
+            "cidr": "10.0.64.0/21",
+            "availabilityZone": "eu-central-1b",
+            "routeTableId": "rtb-0ac0fd80aaee42fa9"
+          }
+        ]
+      },
+      {
+        "name": "Private",
+        "type": "Private",
+        "subnets": [
+          {
+            "subnetId": "subnet-09ca367aa0a18326b",
+            "cidr": "10.0.8.0/21",
+            "availabilityZone": "eu-central-1a",
+            "routeTableId": "rtb-027fa7bdea09915b4"
+          },
+          {
+            "subnetId": "subnet-0c4ca97c6962f1253",
+            "cidr": "10.0.32.0/19",
+            "availabilityZone": "eu-central-1a",
+            "routeTableId": "rtb-026239261181fe166"
+          },
+          {
+            "subnetId": "subnet-0cf4e0ba423051a99",
+            "cidr": "10.0.16.0/21",
+            "availabilityZone": "eu-central-1a",
+            "routeTableId": "rtb-00fa044c72f13dbe9"
+          },
+          {
+            "subnetId": "subnet-03cdb82cd6d3159aa",
+            "cidr": "10.0.96.0/19",
+            "availabilityZone": "eu-central-1b",
+            "routeTableId": "rtb-0713951d8947e4dc8"
+          },
+          {
+            "subnetId": "subnet-06c0d23f801ab12d9",
+            "cidr": "10.0.80.0/21",
+            "availabilityZone": "eu-central-1b",
+            "routeTableId": "rtb-009ba95ece0ac5f9b"
+          },
+          {
+            "subnetId": "subnet-0d4b76c737a3d420f",
+            "cidr": "10.0.72.0/21",
+            "availabilityZone": "eu-central-1b",
+            "routeTableId": "rtb-07d6cfacb4ee81d12"
+          }
+        ]
+      }
+    ]
   }
 }

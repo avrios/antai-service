@@ -20,7 +20,8 @@ import {
     AvrRdsInstance,
     AvrServiceDlqMonitor,
     AvrStage,
-    AvrStageConfig
+    AvrStageConfig,
+    AvrAwsAccount,
 } from 'avr-cdk-utils';
 
 interface BlueprintAppStackProps extends AvrAppStackProps {
@@ -59,7 +60,12 @@ export class BlueprintAppStack extends AvrAppStack {
                 cdk.Duration.days(1),
                 cdk.Duration.days(0),
                 cdk.Duration.days(0)),
-            cloudwatchLogsRetention: AvrStageConfig.all(logs.RetentionDays.ONE_WEEK)
+            cloudwatchLogsRetention: AvrStageConfig.all(logs.RetentionDays.ONE_WEEK),
+
+            dbInstanceIdentifier: `${this.props.stage.identifier}-${this.props.serviceShortName}`,
+            dbSecurityGroupsIngressSources: [
+                this.fargateService.serviceSecurityGroup,
+            ],
         });
 
         new BlueprintResources(this, this.props.stage, this.fargateService.getTaskRole());
