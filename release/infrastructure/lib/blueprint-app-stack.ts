@@ -62,7 +62,6 @@ export class BlueprintAppStack extends AvrAppStack {
                 cdk.Duration.days(0)),
             cloudwatchLogsRetention: AvrStageConfig.all(logs.RetentionDays.ONE_WEEK),
 
-            dbInstanceIdentifier: `${this.props.stage.identifier}-${this.props.serviceShortName}`,
             dbSecurityGroupsIngressSources: [
                 this.fargateService.serviceSecurityGroup,
             ],
