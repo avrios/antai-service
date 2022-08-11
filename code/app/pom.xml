@@ -29,7 +29,7 @@
         <spring.flyway.password>flyway</spring.flyway.password>
 
         <!-- internal dependency versions -->
-        <girders.version>RELEASE-1.91</girders.version>
+        <girders.version>RELEASE-1.95</girders.version>
 
         <!-- external dependency versions -->
         <embedded-database-spring-test.version>2.1.1</embedded-database-spring-test.version>
