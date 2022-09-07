@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.avrios.girders</groupId>
         <artifactId>parent</artifactId>
-        <version>RELEASE-1.98</version>
+        <version>RELEASE-1.100</version>
     </parent>
 
     <groupId>com.avrios.blueprint</groupId>
@@ -43,8 +43,8 @@
         <exec.config.stage>dev</exec.config.stage>
 
         <!-- plugin versions -->
-        <exec-maven-plugin.version>3.0.0</exec-maven-plugin.version>
-        <maven-resource-plugin.version>3.2.0</maven-resource-plugin.version>
+        <exec-maven-plugin.version>3.1.0</exec-maven-plugin.version>
+        <maven-resource-plugin.version>3.3.0</maven-resource-plugin.version>
     </properties>
 
     <modules>
