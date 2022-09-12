@@ -61,6 +61,7 @@ export class BlueprintAppStack extends AvrAppStack {
                 cdk.Duration.days(0),
                 cdk.Duration.days(5)),
             cloudwatchLogsRetention: AvrStageConfig.all(logs.RetentionDays.ONE_WEEK),
+            enhancedMonitoringInterval: AvrStageConfig.allButProd(undefined, 60),
 
             dbSecurityGroupsIngressSources: [
                 this.fargateService.serviceSecurityGroup,
