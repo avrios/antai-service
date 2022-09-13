@@ -57,9 +57,9 @@ export class BlueprintAppStack extends AvrAppStack {
             }),
             backupRetention: AvrStageConfig.each(
                 cdk.Duration.days(0),
-                cdk.Duration.days(1),
+                cdk.Duration.days(5),
                 cdk.Duration.days(0),
-                cdk.Duration.days(0)),
+                cdk.Duration.days(5)),
             cloudwatchLogsRetention: AvrStageConfig.all(logs.RetentionDays.ONE_WEEK),
 
             dbSecurityGroupsIngressSources: [
