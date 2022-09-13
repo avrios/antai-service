@@ -53,7 +53,7 @@ export class BlueprintAppStack extends AvrAppStack {
             instanceType: AvrStageConfig.all(ec2.InstanceType.of(ec2.InstanceClass.T4G, ec2.InstanceSize.MICRO)),
             storageType: AvrStageConfig.all(rds.StorageType.GP2),
             engine: rds.DatabaseInstanceEngine.postgres({
-                version: rds.PostgresEngineVersion.VER_14_1,
+                version: rds.PostgresEngineVersion.VER_14_3,
             }),
             backupRetention: AvrStageConfig.each(
                 cdk.Duration.days(0),
