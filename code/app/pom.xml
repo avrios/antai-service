@@ -13,8 +13,10 @@
     <name>Blueprint Service - Code - App</name>
 
     <properties>
-        <jwtIssuer.userpools>local_123</jwtIssuer.userpools>
-        <jwtIssuer.path>http://localhost:8077/jwk/%s/</jwtIssuer.path>
+        <!--suppress UnresolvedMavenProperty: system env variable-->
+        <jwtIssuer.userpools>${COGNITO_USER_POOL_ID_DEFAULT}</jwtIssuer.userpools>
+        <jwtIssuer.path>https://cognito-idp.%s.amazonaws.com/</jwtIssuer.path>
+
         <bugsnag.active>false</bugsnag.active>
         <bugsnag.send_uncaught_exceptions>false</bugsnag.send_uncaught_exceptions>
 
