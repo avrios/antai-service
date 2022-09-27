@@ -106,6 +106,8 @@
                                         -XX:+HeapDumpOnOutOfMemoryError
                                         -XX:+UseThreadPriorities
                                     </JDK_JAVA_OPTIONS>
+                                    <!--suppress UnresolvedMavenProperty -->
+                                    <COGNITO_USER_POOL_ID_DEFAULT>${COGNITO_USER_POOL_ID_DEFAULT}</COGNITO_USER_POOL_ID_DEFAULT>
                                 </env>
                                 <volumes>
                                     <bind>
