@@ -52,6 +52,14 @@ Merges to trunk (`main` Git Branch) trigger a Codepipeline job within the toolin
 
 *The exception being tooling infrastructure, which must be deployment manually. See `AWS Infrastructure` above.
 
+# Integration Tests
+
+This project has sample tests for 2 types of integration tests:
+ - DataJpaTest with Zonky
+ - AWS infrastructure test with localstack and testcontainers
+
+These are to provide an idea of what it might make sense to cover with integration tests and how you might go about this.
+
 # Troubleshooting
 
 
