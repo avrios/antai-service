@@ -31,14 +31,14 @@
         <spring.flyway.password>flyway</spring.flyway.password>
 
         <!-- internal dependency versions -->
-        <girders.version>RELEASE-1.113</girders.version>
+        <girders.version>RELEASE-1.126</girders.version>
 
         <!-- external dependency versions -->
-        <embedded-database-spring-test.version>2.1.2</embedded-database-spring-test.version>
-        <embedded-postgres.version>2.0.1</embedded-postgres.version>
-        <testcontainers.version>1.17.4</testcontainers.version>
+        <embedded-database-spring-test.version>2.2.0</embedded-database-spring-test.version>
+        <embedded-postgres.version>2.0.2</embedded-postgres.version>
+        <testcontainers.version>1.17.6</testcontainers.version>
         <awaitility.version>4.2.0</awaitility.version>
-        <embedded-postgres-binary.version>14.5.0</embedded-postgres-binary.version>
+        <embedded-postgres-binary.version>14.6.0</embedded-postgres-binary.version>
         <build-helper-maven-plugin.version>3.3.0</build-helper-maven-plugin.version>
     </properties>
 
