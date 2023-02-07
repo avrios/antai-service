@@ -20,8 +20,7 @@ import {
     AvrRdsInstance,
     AvrServiceDlqMonitor,
     AvrStage,
-    AvrStageConfig,
-    AvrAwsAccount,
+    AvrStageConfig
 } from 'avr-cdk-utils';
 
 interface BlueprintAppStackProps extends AvrAppStackProps {
@@ -42,7 +41,8 @@ export class BlueprintAppStack extends AvrAppStack {
             serviceShortName: this.props.serviceShortName,
             stage: this.props.stage,
             repository: this.props.repository,
-            taskContainerProps: this.props.taskContainerProps
+            taskContainerProps: this.props.taskContainerProps,
+            addApiGatewayOptionsCors: false
         });
 
         new AvrRdsInstance(this, {

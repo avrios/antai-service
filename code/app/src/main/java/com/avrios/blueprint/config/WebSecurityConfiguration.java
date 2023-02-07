@@ -1,7 +1,5 @@
 package com.avrios.blueprint.config;
 
-import com.avrios.girders.security.cors.AvrEnableCors;
-import com.avrios.girders.security.cors.DefaultCorsConfiguration;
 import com.avrios.girders.security.jwt.AvrEnableJwtResourceServer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -16,10 +14,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import static com.avrios.girders.security.jwt.AvrEnableJwtResourceServerConfigurer.avrConfigureJwtResourceServer;
 
 @Configuration
-@Import({DefaultCorsConfiguration.class})
 @EnableWebSecurity
-@AvrEnableCors
-@RequiredArgsConstructor
 @AvrEnableJwtResourceServer
 @EnableGlobalMethodSecurity(prePostEnabled = true, jsr250Enabled = true, securedEnabled = true)
 public class WebSecurityConfiguration {
@@ -28,7 +23,6 @@ public class WebSecurityConfiguration {
         http
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
                 .apply(avrConfigureJwtResourceServer()).and()
-                .cors().and()
                 .csrf().disable()
 
                 .authorizeRequests()
