@@ -51,7 +51,7 @@ export class BlueprintAppStack extends AvrAppStack {
             allocatedStorage: AvrStageConfig.all(100),
             maxAllocatedStorage: AvrStageConfig.all(200),
             instanceType: AvrStageConfig.all(ec2.InstanceType.of(ec2.InstanceClass.T4G, ec2.InstanceSize.MICRO)),
-            storageType: AvrStageConfig.all(rds.StorageType.GP2),
+            storageType: AvrStageConfig.all(rds.StorageType.GP3),
             engine: rds.DatabaseInstanceEngine.postgres({
                 version: rds.PostgresEngineVersion.VER_14_3,
             }),
