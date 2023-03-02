@@ -73,7 +73,7 @@ export class BlueprintAppStack extends AvrAppStack {
         new AvrServiceDlqMonitor(this, {
             stage: this.props.stage,
             serviceShortName: this.props.serviceShortName,
-            slackChannelIdentifier: '@slack-blueprint-alerts'
+            slackChannelIdentifier: '@slack-Vimcar-avrios-blueprint-alerts'
         });
     }
 }

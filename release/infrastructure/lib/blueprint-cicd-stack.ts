@@ -57,12 +57,12 @@ export class BlueprintCiCdStack extends AvrCiCdStack {
 
     private getPipelineProps(): AvrEcrCodePipelineProps {
         const chatbotSlackClient = new chatbot.SlackChannelConfiguration(this, 'slack', {
-            slackChannelConfigurationName: `blueprint-alerts`,
-            slackWorkspaceId: 'T02S31RB0', // avrios.slack.com
-            slackChannelId: 'C030GKTF490', // #blueprint-alerts
+            slackChannelConfigurationName: `avrios-blueprint-alerts`,
+            slackWorkspaceId: 'T02NY065N', // vimcar.slack.com
+            slackChannelId: 'C04RSSN74AE', // #avrios-blueprint-alerts
         });
 
-        const notificationSettings = new AvrBuildNotifications(chatbotSlackClient)
+        const notificationSettings = new AvrBuildNotifications(chatbotSlackClient);
         return {
             ecrRepository: this.ecrRepository.repository,
             serviceImages: this.serviceImages,
