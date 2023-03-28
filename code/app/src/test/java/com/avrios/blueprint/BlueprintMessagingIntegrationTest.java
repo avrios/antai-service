@@ -4,15 +4,22 @@ import com.amazonaws.services.sns.AmazonSNSAsync;
 import com.amazonaws.services.sns.AmazonSNSAsyncClientBuilder;
 import com.amazonaws.services.sqs.AmazonSQSAsync;
 import com.amazonaws.services.sqs.AmazonSQSAsyncClientBuilder;
-import com.amazonaws.services.sqs.model.ReceiveMessageResult;
+import com.amazonaws.services.sqs.model.GetQueueAttributesResult;
+import com.amazonaws.services.sqs.model.QueueAttributeName;
 import com.avrios.blueprint.config.BugsnagConfiguration;
-import com.avrios.blueprint.service.BlueprintApiService;
+import com.avrios.blueprint.config.WebSecurityConfiguration;
 import com.avrios.girders.awsmessaging.config.sns.SnsConfigurer;
 import com.avrios.girders.awsmessaging.config.sqs.AwsSqsHealthConfiguration;
 import com.avrios.girders.awsmessaging.config.sqs.SqsConfigurer;
+import com.avrios.girders.awsmessaging.sns.MessagingService;
+import com.avrios.girders.awsmessagingtypes.BaseMessage;
 import com.avrios.girders.common.Stage;
 import com.avrios.girders.common.StageHolder;
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
+import lombok.EqualsAndHashCode;
+import lombok.Value;
+import lombok.experimental.SuperBuilder;
+import lombok.extern.jackson.Jacksonized;
 import org.awaitility.Awaitility;
 import org.awaitility.Durations;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,7 +40,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 import javax.inject.Inject;
-import java.util.concurrent.Future;
+import java.time.Duration;
+import java.util.List;
 
 import static com.avrios.blueprint.BlueprintMessagingIntegrationTest.INTEGRATION_TEST_STAGE;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -79,7 +87,8 @@ class BlueprintMessagingIntegrationTest {
             .withServices(LocalStackContainer.Service.SQS, LocalStackContainer.Service.SNS);
 
     public static final String INTEGRATION_TEST_STAGE = "integration-test";
-    public static final String QUEUE_NAME = INTEGRATION_TEST_STAGE + "-blueprint-events";
+    public static final String STAGE_UNAWARE_TOPIC_NAME = "blueprint-events";
+    public static final String QUEUE_NAME = INTEGRATION_TEST_STAGE + "-" + STAGE_UNAWARE_TOPIC_NAME;
     public static final String TOPIC_NAME = QUEUE_NAME;
 
     static {
@@ -91,13 +100,15 @@ class BlueprintMessagingIntegrationTest {
     @MockBean
     private BugsnagConfiguration bugsnagConfiguration;
     @MockBean
+    private WebSecurityConfiguration webSecurityConfiguration;
+    @MockBean
     private StageHolder stageHolder;
     @Inject
     private AmazonSQSAsync amazonSQS;
     @Inject
     private AmazonSNSAsync amazonSNS;
     @Inject
-    private BlueprintApiService blueprintApiService;
+    private MessagingService messagingService;
 
     @BeforeEach
     void setUp() {
@@ -106,18 +117,25 @@ class BlueprintMessagingIntegrationTest {
     }
 
     @Test
-    void apiServiceSendsMessage() throws Exception {
+    void apiCallSendsMessage() {
         // given
         String queueUrl = amazonSQS.getQueueUrl(QUEUE_NAME).getQueueUrl();
         amazonSNS.subscribe("arn:aws:sns:" + localstack.getRegion() + ":000000000000:" + TOPIC_NAME, "sqs", queueUrl);
 
         // when
-        blueprintApiService.send("some-message");
+        messagingService.send(TestMessage.builder().message("some-message").build());
 
         // then
-        Future<ReceiveMessageResult> receiveMessages = amazonSQS.receiveMessageAsync(queueUrl);
-        await().until(receiveMessages::isDone);
-        assertThat(receiveMessages.get().getMessages().size()).isEqualTo(1);
+        await().atMost(Duration.ofSeconds(1)).untilAsserted(() -> {
+            assertThat(numberOfMessagesInQueue(queueUrl)).isEqualTo(1);
+        });
+    }
+
+    private Integer numberOfMessagesInQueue(String queueUrl) {
+        // see https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_GetQueueAttributes.html
+        String attributeName = QueueAttributeName.ApproximateNumberOfMessages.toString();
+        GetQueueAttributesResult attributes = amazonSQS.getQueueAttributes(queueUrl, List.of(attributeName));
+        return Integer.parseInt(attributes.getAttributes().get(attributeName));
     }
 
     @TestConfiguration
@@ -157,6 +175,19 @@ class BlueprintMessagingIntegrationTest {
         public void beforeAll(ExtensionContext context) throws Exception {
             localstack.execInContainer("awslocal", "sqs", "create-queue", "--queue-name", QUEUE_NAME);
             localstack.execInContainer("awslocal", "sns", "create-topic", "--name", TOPIC_NAME);
+        }
+    }
+
+    @Value
+    @SuperBuilder
+    @Jacksonized
+    @EqualsAndHashCode(callSuper = true)
+    public static class TestMessage extends BaseMessage {
+        String message;
+
+        @Override
+        public String getTopic() {
+            return STAGE_UNAWARE_TOPIC_NAME;
         }
     }
 }

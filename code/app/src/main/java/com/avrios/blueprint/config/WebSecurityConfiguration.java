@@ -1,11 +1,9 @@
 package com.avrios.blueprint.config;
 
 import com.avrios.girders.security.jwt.AvrEnableJwtResourceServer;
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -16,18 +14,23 @@ import static com.avrios.girders.security.jwt.AvrEnableJwtResourceServerConfigur
 @Configuration
 @EnableWebSecurity
 @AvrEnableJwtResourceServer
-@EnableGlobalMethodSecurity(prePostEnabled = true, jsr250Enabled = true, securedEnabled = true)
+@EnableMethodSecurity(jsr250Enabled = true, securedEnabled = true)
 public class WebSecurityConfiguration {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
+                .securityContext(securityContext -> securityContext.requireExplicitSave(true))
+                .sessionManagement(sessions -> {
+                    sessions.requireExplicitAuthenticationStrategy(true);
+                    sessions.sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+                })
                 .apply(avrConfigureJwtResourceServer()).and()
                 .csrf().disable()
 
-                .authorizeRequests()
-                .regexMatchers("^/healthCheck.*").permitAll()
-                .anyRequest().authenticated();
+                .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers("/healthCheck/**").permitAll()
+                        .anyRequest().authenticated());
+
         return http.build();
     }
 }
