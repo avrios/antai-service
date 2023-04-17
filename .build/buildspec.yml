@@ -24,7 +24,7 @@ phases:
   build:
     commands:
       - mvn versions:set versions:update-child-modules -DnewVersion=${RELEASE_VERSION} -s .build/codeartifact.xml
-      - HOME=/home/codebuild-user mvn clean deploy -s .build/codeartifact.xml
+      - HOME=/home/codebuild-user mvn clean deploy -Ddocker.tags.latest=${DOCKER_TAGS_LATEST} -s .build/codeartifact.xml
       - printf "{\"imageTag\":\"${RELEASE_VERSION}\"}" > imagedefinitions.json
 
   post_build:

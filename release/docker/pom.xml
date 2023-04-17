@@ -17,7 +17,7 @@
     <properties>
         <docker.endpoint.port>${exec.config.port}</docker.endpoint.port>
         <docker.jar.name>${avr.service.name}.jar</docker.jar.name>
-
+        <docker.tags.latest></docker.tags.latest> <!-- empty value means adding no additional tags -->
         <container.work.dir>/var/opt/${avr.service.name}</container.work.dir>
     </properties>
 
@@ -47,6 +47,10 @@
                         <image>
                             <name>${avr.service.name.short}:${project.version}</name>
                             <build>
+                                <tags>
+                                    <tag>${project.version}</tag>
+                                    <tag>${docker.tags.latest}</tag>
+                                </tags>
                                 <dockerFileDir>${project.basedir}/src/main/docker</dockerFileDir>
                                 <assembly>
                                     <inline>
