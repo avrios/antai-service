@@ -4,6 +4,7 @@ import com.avrios.girders.awsmessaging.sns.MessagingService;
 import com.avrios.job.ExecutionScheduledMessage;
 import com.avrios.job.ParallelJob;
 import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
+import io.awspring.cloud.messaging.listener.Visibility;
 import io.awspring.cloud.messaging.listener.annotation.SqsListener;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -19,8 +20,8 @@ public class ComplexBlueprintJob extends ParallelJob {
     }
 
     @SqsListener(value = "${aws.queue.complexJob}", deletionPolicy = SqsMessageDeletionPolicy.ALWAYS)
-    public void processMessage(ExecutionScheduledMessage message) {
-        super.processMessage(message);
+    public void processMessage(ExecutionScheduledMessage message, Visibility visibility) {
+        super.processMessage(message, visibility);
     }
 
     @Override
