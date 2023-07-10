@@ -30,11 +30,8 @@
         <spring.datasource.password>blueprint</spring.datasource.password>
         <spring.flyway.password>flyway</spring.flyway.password>
 
-        <coreClient.baseUrl>http://localhost:8080/api</coreClient.baseUrl>
-        <coreClient.basicAuth.password>ENC(BKXchr9SpcBnkH6oS2vhBnZmN3kcfQR+0zEviXtNmq2MqOlxgaasLLUtBS/DjRvQVlHOjs2+M+5JHcXtR7dcCGSDw3x3YtNgo9r2D5VmZLo=)</coreClient.basicAuth.password>
-
         <!-- internal dependency versions -->
-        <girders.version>1.3-val</girders.version>
+        <girders.version>RELEASE-1.144</girders.version>
 
         <!-- external dependency versions -->
         <embedded-database-spring-test.version>2.2.0</embedded-database-spring-test.version>
