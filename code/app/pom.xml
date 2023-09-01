@@ -34,15 +34,15 @@
         <coreClient.basicAuth.password>ENC(BKXchr9SpcBnkH6oS2vhBnZmN3kcfQR+0zEviXtNmq2MqOlxgaasLLUtBS/DjRvQVlHOjs2+M+5JHcXtR7dcCGSDw3x3YtNgo9r2D5VmZLo=)</coreClient.basicAuth.password>
 
         <!-- internal dependency versions -->
-        <girders.version>RELEASE-1.152</girders.version>
+        <girders.version>RELEASE-1.158</girders.version>
 
         <!-- external dependency versions -->
-        <embedded-database-spring-test.version>2.2.0</embedded-database-spring-test.version>
-        <embedded-postgres.version>2.0.3</embedded-postgres.version>
+        <embedded-database-spring-test.version>2.3.0</embedded-database-spring-test.version>
+        <embedded-postgres.version>2.0.4</embedded-postgres.version>
         <testcontainers.version>1.17.6</testcontainers.version>
         <awaitility.version>4.2.0</awaitility.version>
-        <embedded-postgres-binary.version>14.6.0</embedded-postgres-binary.version>
-        <build-helper-maven-plugin.version>3.3.0</build-helper-maven-plugin.version>
+        <embedded-postgres-binary.version>15.4.0</embedded-postgres-binary.version>
+        <build-helper-maven-plugin.version>3.4.0</build-helper-maven-plugin.version>
     </properties>
 
     <dependencies>
