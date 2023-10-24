@@ -11,7 +11,7 @@
     - Failure to do so may result in a failed deployment of application and/or cicd stack.
 
 4. Find a new port to run our service on.
-    - Replace `project.properties.exec.config.port` in [pom.xml](https://github.com/avrios/blueprint-service/blob/main/pom.xml) from `9999` to a new, unique value incremented from the [Services Overview Notion page](https://www.notion.so/avrios/Services-overview-3c0a0511af714b8fb75b77a13569cf22#9154d3e620944593a9aa909b2894cf67) and update the note on the page.
+    - Replace `project.properties.exec.config.port` in [pom.xml](https://github.com/avrios/blueprint-service/blob/main/pom.xml) from `9999` to a new, unique value incremented from the [Services Overview Notion page](https://www.notion.so/vimcar/Services-overview-48c1b9671c444be0a73738b06265e9cd) and update the note on the page.
 
 5. Monitoring
 
@@ -51,7 +51,7 @@
 
 
 7. Documentation & Service Architecture
-   - [Ensure the relevant child Notion pages](https://www.notion.so/avrios/Product-Delivery-761187cf730e4f98a9a2ea033a18c4cd) have been created clearly outlining what your service does, what its purpose is and how it works.
+   - [Ensure the relevant child Notion pages](https://www.notion.so/vimcar/Product-Delivery-3b983f7fe0b440708d25b7d26e548e3b?pvs=4) have been created clearly outlining what your service does, what its purpose is and how it works.
    - Tips
      - Generally we try do adhere to the [arc24 standard](https://arc42.org/overview) when writing documentation.
      - Documentation should be clear and concise, yet plentiful.
