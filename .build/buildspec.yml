@@ -10,7 +10,7 @@ phases:
     run-as: root
     runtime-versions:
       java: corretto17
-      nodejs: 16
+      nodejs: 18
       avrios: 1
     commands:
       - restore-maven-cache -u codebuild-user

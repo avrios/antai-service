@@ -2,6 +2,7 @@ package com.avrios.blueprint.repository;
 
 import com.avrios.blueprint.model.BlueprintFilteredEntity;
 import com.avrios.girders.security.AvriosUserDetails;
+import com.avrios.girders.security.session.SessionOwnerType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.TestingAuthenticationToken;
@@ -23,6 +24,7 @@ class BlueprintFilteredEntityRepositoryTest {
     void setup() {
         AvriosUserDetails technicalUserDetails = AvriosUserDetails.builder()
                 .companyUuid(AUTHENTICATED_COMPANY_UUID)
+                .sessionOwnerType(SessionOwnerType.USER)
                 .build();
         TestingAuthenticationToken authentication = new TestingAuthenticationToken(technicalUserDetails, null);
         SecurityContextHolder.setContext(new SecurityContextImpl(authentication));
