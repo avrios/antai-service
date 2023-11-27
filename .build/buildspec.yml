@@ -31,18 +31,7 @@ phases:
     commands:
       - prepare-maven-cache -u codebuild-user -p com/avrios/blueprint
       # Tag git on RELEASE-* versions
-      - jq --arg ref "refs/tags/${RELEASE_VERSION}" --arg sha "${CODEBUILD_RESOLVED_SOURCE_VERSION}" '.ref=$ref | .sha=$sha' ./.build/templates/github_create_tag_commit.json > /tmp/payload.json
-      - >
-        if [[ $RELEASE_VERSION_PREFIX == RELEASE* ]];
-        then
-          curl \
-          -X POST \
-          -H "Accept: application/vnd.github+json" \
-          -H "Authorization: token ${GITHUB_TOKEN}" \
-          -d @/tmp/payload.json \
-          -f \
-          https://api.github.com/repos/avrios/blueprint-service/git/refs
-        fi;
+      - if [[ $RELEASE_VERSION_PREFIX == RELEASE* ]]; then publish-git-tag --tag ${RELEASE_VERSION} --source-commit ${CODEBUILD_RESOLVED_SOURCE_VERSION} --repository blueprint-service --gh-token ${GITHUB_TOKEN}; fi
 
 artifacts:
   files:
