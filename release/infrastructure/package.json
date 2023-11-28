@@ -15,6 +15,6 @@
   },
   "dependencies": {
     "constructs": "10.3.0",
-    "avr-cdk-utils": "6.0.0"
+    "avr-cdk-utils": "7.0.0"
   }
 }
