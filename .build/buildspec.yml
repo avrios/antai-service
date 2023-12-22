@@ -9,7 +9,7 @@ phases:
   install:
     run-as: root
     runtime-versions:
-      java: corretto17
+      java: corretto21
       nodejs: 18
       avrios: 1
     commands:

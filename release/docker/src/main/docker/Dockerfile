@@ -1,4 +1,4 @@
-FROM 917835067517.dkr.ecr.eu-central-1.amazonaws.com/docker-base-image-java:4-arm
+FROM 917835067517.dkr.ecr.eu-central-1.amazonaws.com/docker-base-image-java:6-arm
 
 RUN mkdir -p ${container.work.dir}
 

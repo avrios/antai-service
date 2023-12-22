@@ -1,5 +1,9 @@
 package com.avrios.blueprint;
 
+import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.sns.AmazonSNSAsync;
 import com.amazonaws.services.sns.AmazonSNSAsyncClientBuilder;
 import com.amazonaws.services.sqs.AmazonSQSAsync;
@@ -80,7 +84,7 @@ import static org.mockito.Mockito.when;
  */
 class BlueprintMessagingIntegrationTest {
     // This defines the version of the localstack docker image that testcontainers deploys
-    public static final String LOCALSTACK_IMAGE_NAME = "localstack/localstack:1.1.0";
+    public static final String LOCALSTACK_IMAGE_NAME = "localstack/localstack:1.3.1";
     public static final DockerImageName LOCALSTACK_IMAGE = DockerImageName.parse(LOCALSTACK_IMAGE_NAME);
     @Container
     private static final LocalStackContainer localstack = new LocalStackContainer(LOCALSTACK_IMAGE)
@@ -146,9 +150,8 @@ class BlueprintMessagingIntegrationTest {
             return new SnsConfigurer() {
                 @Override
                 public void configureSnsClient(AmazonSNSAsyncClientBuilder amazonSNSAsync) {
-                    amazonSNSAsync.setEndpointConfiguration(localstack.getEndpointConfiguration(LocalStackContainer.Service.SNS));
-                    amazonSNSAsync.setCredentials(localstack.getDefaultCredentialsProvider());
-
+                    amazonSNSAsync.setEndpointConfiguration(getEndpointConfiguration(LocalStackContainer.Service.SNS));
+                    amazonSNSAsync.setCredentials(getDefaultCredentialsProvider());
                 }
             };
         }
@@ -159,10 +162,18 @@ class BlueprintMessagingIntegrationTest {
             return new SqsConfigurer() {
                 @Override
                 public void configureSqsClient(AmazonSQSAsyncClientBuilder amazonSQSAsync) {
-                    amazonSQSAsync.setEndpointConfiguration(localstack.getEndpointConfiguration(LocalStackContainer.Service.SQS));
-                    amazonSQSAsync.setCredentials(localstack.getDefaultCredentialsProvider());
+                    amazonSQSAsync.setEndpointConfiguration(getEndpointConfiguration(LocalStackContainer.Service.SQS));
+                    amazonSQSAsync.setCredentials(getDefaultCredentialsProvider());
                 }
             };
+        }
+
+        private AwsClientBuilder.EndpointConfiguration getEndpointConfiguration(LocalStackContainer.Service service) {
+            return new AwsClientBuilder.EndpointConfiguration(localstack.getEndpointOverride(service).toString(), localstack.getRegion());
+        }
+
+        private AWSCredentialsProvider getDefaultCredentialsProvider() {
+            return new AWSStaticCredentialsProvider(new BasicAWSCredentials("accesskey", "secretKey"));
         }
     }
 
