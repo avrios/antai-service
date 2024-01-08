@@ -16,7 +16,7 @@ import {
     AvrCodePipelineHotfix,
     AvrEcrCodePipelineProps,
     AvrCodePipelineMain,
-    AvrBuildNotifications
+    FleetBuildNotifications
 } from 'avr-cdk-utils';
 
 export class BlueprintCiCdStack extends AvrCiCdStack {
@@ -62,13 +62,13 @@ export class BlueprintCiCdStack extends AvrCiCdStack {
             slackChannelId: 'C04RSSN74AE', // #avrios-blueprint-alerts
         });
 
-        const notificationSettings = new AvrBuildNotifications(chatbotSlackClient);
+        const notificationSettings = new FleetBuildNotifications(chatbotSlackClient);
         return {
             ecrRepository: this.ecrRepository.repository,
             serviceImages: this.serviceImages,
             serviceShortName: this.props.serviceShortName,
             gitRepositoryName: this.props.gitRepositoryName,
-            codeBuildImage: AvrCodePipeline.getCustomAarch64Image(this, '2'),
+            codeBuildImage: AvrCodePipeline.getEcrImage(this, 'code-build-image', '2'),
             buildNotifications: notificationSettings,
         };
     }
