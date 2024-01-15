@@ -34,7 +34,7 @@
         <coreClient.basicAuth.password>ENC(BKXchr9SpcBnkH6oS2vhBnZmN3kcfQR+0zEviXtNmq2MqOlxgaasLLUtBS/DjRvQVlHOjs2+M+5JHcXtR7dcCGSDw3x3YtNgo9r2D5VmZLo=)</coreClient.basicAuth.password>
 
         <!-- internal dependency versions -->
-        <girders.version>RELEASE-1.175</girders.version>
+        <girders.version>RELEASE-1.178</girders.version>
 
         <!-- external dependency versions -->
         <embedded-database-spring-test.version>2.4.0</embedded-database-spring-test.version>

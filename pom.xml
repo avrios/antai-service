@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.avrios.girders</groupId>
         <artifactId>parent</artifactId>
-        <version>RELEASE-1.175</version>
+        <version>RELEASE-1.178</version>
     </parent>
 
     <groupId>com.avrios.blueprint</groupId>
@@ -51,6 +51,29 @@
         <module>code</module>
         <module>release</module>
     </modules>
+
+    <repositories>
+        <repository>
+            <id>avr-releases</id>
+            <url>https://avrios-917835067517.d.codeartifact.eu-central-1.amazonaws.com/maven/avrios-release/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>avr-snapshots</id>
+            <url>https://avrios-917835067517.d.codeartifact.eu-central-1.amazonaws.com/maven/avrios-snapshot/</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 
     <dependencyManagement>
         <dependencies>
