@@ -3,9 +3,9 @@ package com.avrios.blueprint.job;
 import com.avrios.girders.awsmessaging.sns.MessagingService;
 import com.avrios.job.ExecutionScheduledMessage;
 import com.avrios.job.ParallelJob;
-import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
-import io.awspring.cloud.messaging.listener.Visibility;
-import io.awspring.cloud.messaging.listener.annotation.SqsListener;
+import io.awspring.cloud.sqs.annotation.SqsListener;
+import io.awspring.cloud.sqs.annotation.SqsListenerAcknowledgementMode;
+import io.awspring.cloud.sqs.listener.Visibility;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -19,7 +19,7 @@ public class ComplexBlueprintJob extends ParallelJob {
         super(messagingService);
     }
 
-    @SqsListener(value = "${aws.queue.complexJob}", deletionPolicy = SqsMessageDeletionPolicy.ALWAYS)
+    @SqsListener(value = "${aws.queue.complexJob}", acknowledgementMode = SqsListenerAcknowledgementMode.ALWAYS)
     public void processMessage(ExecutionScheduledMessage message, Visibility visibility) {
         super.processMessage(message, visibility);
     }
@@ -31,7 +31,7 @@ public class ComplexBlueprintJob extends ParallelJob {
 
     @Override
     public long processPhase(UUID phaseUuid) {
-        log.debug("Processing a simple job with phaseUuid={}.", phaseUuid);
+        log.debug("Processing a complex job with phaseUuid={}.", phaseUuid);
         return 1;
     }
 }

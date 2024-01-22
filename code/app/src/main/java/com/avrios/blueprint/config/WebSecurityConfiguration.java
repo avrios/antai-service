@@ -20,10 +20,7 @@ public class WebSecurityConfiguration {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .securityContext(securityContext -> securityContext.requireExplicitSave(true))
-                .sessionManagement(sessions -> {
-                    sessions.requireExplicitAuthenticationStrategy(true);
-                    sessions.sessionCreationPolicy(SessionCreationPolicy.STATELESS);
-                })
+                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
                 .apply(avrConfigureJwtResourceServer()).and()
                 .csrf().disable()
 

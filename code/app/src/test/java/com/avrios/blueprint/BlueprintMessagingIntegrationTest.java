@@ -1,20 +1,9 @@
 package com.avrios.blueprint;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.services.sns.AmazonSNSAsync;
-import com.amazonaws.services.sns.AmazonSNSAsyncClientBuilder;
-import com.amazonaws.services.sqs.AmazonSQSAsync;
-import com.amazonaws.services.sqs.AmazonSQSAsyncClientBuilder;
-import com.amazonaws.services.sqs.model.GetQueueAttributesResult;
-import com.amazonaws.services.sqs.model.QueueAttributeName;
 import com.avrios.blueprint.config.BugsnagConfiguration;
 import com.avrios.blueprint.config.WebSecurityConfiguration;
-import com.avrios.girders.awsmessaging.config.sns.SnsConfigurer;
+import com.avrios.girders.awscommon.config.AwsCredentialsProviderConfiguration;
 import com.avrios.girders.awsmessaging.config.sqs.AwsSqsHealthConfiguration;
-import com.avrios.girders.awsmessaging.config.sqs.SqsConfigurer;
 import com.avrios.girders.awsmessaging.sns.MessagingService;
 import com.avrios.girders.awsmessagingtypes.BaseMessage;
 import com.avrios.girders.common.Stage;
@@ -28,9 +17,6 @@ import org.awaitility.Awaitility;
 import org.awaitility.Durations;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.BeforeAllCallback;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.extension.ExtensionContext;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -42,10 +28,21 @@ import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.sns.SnsClient;
+import software.amazon.awssdk.services.sns.model.SubscribeRequest;
+import software.amazon.awssdk.services.sqs.SqsAsyncClient;
+import software.amazon.awssdk.services.sqs.model.GetQueueAttributesRequest;
+import software.amazon.awssdk.services.sqs.model.GetQueueAttributesResponse;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
+import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
 
+import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import java.time.Duration;
-import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 import static com.avrios.blueprint.BlueprintMessagingIntegrationTest.INTEGRATION_TEST_STAGE;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -54,7 +51,6 @@ import static org.mockito.Mockito.when;
 
 @ActiveProfiles("dev")
 @Testcontainers
-@ExtendWith(BlueprintMessagingIntegrationTest.TestQueueCreator.class)
 @SpringBootTest(
         properties = {
                 "jasypt.encryptor.password=secret",
@@ -83,12 +79,11 @@ import static org.mockito.Mockito.when;
  * Unfortunately all the AWS infrastructure has to be created with command line scripts, the cloudformation cannot be used.
  */
 class BlueprintMessagingIntegrationTest {
-    // This defines the version of the localstack docker image that testcontainers deploys
-    public static final String LOCALSTACK_IMAGE_NAME = "localstack/localstack:1.3.1";
-    public static final DockerImageName LOCALSTACK_IMAGE = DockerImageName.parse(LOCALSTACK_IMAGE_NAME);
     @Container
-    private static final LocalStackContainer localstack = new LocalStackContainer(LOCALSTACK_IMAGE)
-            .withServices(LocalStackContainer.Service.SQS, LocalStackContainer.Service.SNS);
+    private static final LocalStackContainer localstack =
+            new LocalStackContainer(DockerImageName.parse("localstack/localstack:1.3.1"))
+                    .withServices(LocalStackContainer.Service.SQS, LocalStackContainer.Service.SNS)
+                    .withReuse(true);
 
     public static final String INTEGRATION_TEST_STAGE = "integration-test";
     public static final String STAGE_UNAWARE_TOPIC_NAME = "blueprint-events";
@@ -100,19 +95,30 @@ class BlueprintMessagingIntegrationTest {
     }
 
     @MockBean
-    private AwsSqsHealthConfiguration sqsQueueHealthIndicator;
-    @MockBean
     private BugsnagConfiguration bugsnagConfiguration;
     @MockBean
     private WebSecurityConfiguration webSecurityConfiguration;
     @MockBean
     private StageHolder stageHolder;
     @Inject
-    private AmazonSQSAsync amazonSQS;
+    private SqsAsyncClient sqsAsyncClient;
     @Inject
-    private AmazonSNSAsync amazonSNS;
+    private SnsClient snsClient;
     @Inject
     private MessagingService messagingService;
+
+    private static synchronized void startLocalstackLazy() {
+        if (!localstack.isCreated()) {
+            localstack.start();
+        }
+    }
+
+    private static void execInContainerOrThrow(String... commands) throws Exception {
+        org.testcontainers.containers.Container.ExecResult execResult = localstack.execInContainer(commands);
+        if (execResult.getExitCode() > 0) {
+            throw new RuntimeException(execResult.getStderr());
+        }
+    }
 
     @BeforeEach
     void setUp() {
@@ -121,10 +127,14 @@ class BlueprintMessagingIntegrationTest {
     }
 
     @Test
-    void apiCallSendsMessage() {
+    void apiCallSendsMessage() throws Exception {
         // given
-        String queueUrl = amazonSQS.getQueueUrl(QUEUE_NAME).getQueueUrl();
-        amazonSNS.subscribe("arn:aws:sns:" + localstack.getRegion() + ":000000000000:" + TOPIC_NAME, "sqs", queueUrl);
+        String queueUrl = sqsAsyncClient.getQueueUrl(GetQueueUrlRequest.builder().queueName(QUEUE_NAME).build()).get().queueUrl();
+        snsClient.subscribe(SubscribeRequest.builder()
+                .topicArn("arn:aws:sns:" + localstack.getRegion() + ":000000000000:" + TOPIC_NAME)
+                .protocol("sqs")
+                .endpoint(queueUrl)
+                .build());
 
         // when
         messagingService.send(TestMessage.builder().message("some-message").build());
@@ -135,57 +145,66 @@ class BlueprintMessagingIntegrationTest {
         });
     }
 
-    private Integer numberOfMessagesInQueue(String queueUrl) {
+    private Integer numberOfMessagesInQueue(String queueUrl) throws ExecutionException, InterruptedException {
         // see https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_GetQueueAttributes.html
-        String attributeName = QueueAttributeName.ApproximateNumberOfMessages.toString();
-        GetQueueAttributesResult attributes = amazonSQS.getQueueAttributes(queueUrl, List.of(attributeName));
-        return Integer.parseInt(attributes.getAttributes().get(attributeName));
+        QueueAttributeName attribute = QueueAttributeName.APPROXIMATE_NUMBER_OF_MESSAGES;
+        GetQueueAttributesResponse getQueueAttributesResponse = sqsAsyncClient.getQueueAttributes(GetQueueAttributesRequest.builder()
+                .queueUrl(queueUrl)
+                .attributeNames(attribute)
+                .build()).get();
+        return Integer.parseInt(getQueueAttributesResponse.attributes().get(attribute));
     }
 
     @TestConfiguration
     static class LocalstackTestConfiguration {
-        @Bean
-        @Primary
-        public SnsConfigurer snsConfigurer() {
-            return new SnsConfigurer() {
-                @Override
-                public void configureSnsClient(AmazonSNSAsyncClientBuilder amazonSNSAsync) {
-                    amazonSNSAsync.setEndpointConfiguration(getEndpointConfiguration(LocalStackContainer.Service.SNS));
-                    amazonSNSAsync.setCredentials(getDefaultCredentialsProvider());
-                }
-            };
-        }
+        @MockBean
+        private AwsSqsHealthConfiguration awsSqsHealthConfiguration;
+        @MockBean
+        private AwsCredentialsProviderConfiguration awsCredentialsProviderConfiguration;
 
         @Bean
         @Primary
-        public SqsConfigurer sqsConfigurer() {
-            return new SqsConfigurer() {
-                @Override
-                public void configureSqsClient(AmazonSQSAsyncClientBuilder amazonSQSAsync) {
-                    amazonSQSAsync.setEndpointConfiguration(getEndpointConfiguration(LocalStackContainer.Service.SQS));
-                    amazonSQSAsync.setCredentials(getDefaultCredentialsProvider());
-                }
-            };
+        AwsCredentialsProvider overriddenAwsCredentialsProvider() {
+            return () -> AwsBasicCredentials.create(localstack.getAccessKey(), localstack.getSecretKey());
         }
 
-        private AwsClientBuilder.EndpointConfiguration getEndpointConfiguration(LocalStackContainer.Service service) {
-            return new AwsClientBuilder.EndpointConfiguration(localstack.getEndpointOverride(service).toString(), localstack.getRegion());
+        @Bean
+        @Primary
+        SnsClient overriddenSnsClient(AwsCredentialsProvider awsCredentialsProvider) {
+            startLocalstackLazy();
+
+            return SnsClient.builder()
+                    .credentialsProvider(awsCredentialsProvider)
+                    .region(Region.of(localstack.getRegion()))
+                    .endpointOverride(localstack.getEndpointOverride(LocalStackContainer.Service.SNS))
+                    .build();
         }
 
-        private AWSCredentialsProvider getDefaultCredentialsProvider() {
-            return new AWSStaticCredentialsProvider(new BasicAWSCredentials("accesskey", "secretKey"));
-        }
-    }
+        @Bean
+        @Primary
+        SqsAsyncClient overriddenSqsAsyncClient(AwsCredentialsProvider awsCredentialsProvider) {
+            startLocalstackLazy();
 
-    /**
-     * Must be placed between annotations {@link Testcontainers} and {@link SpringBootTest} for the "correct" order to be respected:
-     * Localstack must be ready, but the Spring Application Context not yet initialized.
-     */
-    static class TestQueueCreator implements BeforeAllCallback {
-        @Override
-        public void beforeAll(ExtensionContext context) throws Exception {
-            localstack.execInContainer("awslocal", "sqs", "create-queue", "--queue-name", QUEUE_NAME);
-            localstack.execInContainer("awslocal", "sns", "create-topic", "--name", TOPIC_NAME);
+            return SqsAsyncClient.builder()
+                    .credentialsProvider(awsCredentialsProvider)
+                    .region(Region.of(localstack.getRegion()))
+                    .endpointOverride(localstack.getEndpointOverride(LocalStackContainer.Service.SQS))
+                    .build();
+        }
+
+        @PostConstruct
+        void prepareContext() throws Exception {
+            startLocalstackLazy();
+
+            execInContainerOrThrow("awslocal", "sqs", "create-queue", "--queue-name", QUEUE_NAME);
+            execInContainerOrThrow("awslocal", "sns", "create-topic", "--name", TOPIC_NAME);
+
+            execInContainerOrThrow("awslocal", "sqs", "create-queue",
+                    "--queue-name", INTEGRATION_TEST_STAGE + "-blueprint-jobSimple.fifo",
+                    "--attributes", "FifoQueue=true");
+            execInContainerOrThrow("awslocal", "sqs", "create-queue",
+                    "--queue-name", INTEGRATION_TEST_STAGE + "-blueprint-jobComplex.fifo",
+                    "--attributes", "FifoQueue=true");
         }
     }
 

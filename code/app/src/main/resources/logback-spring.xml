@@ -31,10 +31,13 @@
     <logger name="com.querydsl.jpa.impl.JPAQuery" level="ERROR" />
     <logger name="xenqtt" level="INFO" />
     <logger name="io.lettuce" level="ERROR"/>
+    <logger name="io.netty" level="INFO"/>
     <logger name="io.netty.util.internal" level="ERROR"/>
     <logger name="io.micrometer.shaded.io.netty.util.internal" level="ERROR"/>
     <logger name="com.amazonaws" level="INFO"/>
     <logger name="io.awspring.cloud.messaging" level="ERROR" />
+    <logger name="io.awspring.cloud.sqs" level="INFO"/>
+    <logger name="software.amazon" level="INFO"/>
 
     <springProfile name="dev">
         <root level="DEBUG">
