@@ -34,12 +34,11 @@
         <coreClient.basicAuth.password>ENC(BKXchr9SpcBnkH6oS2vhBnZmN3kcfQR+0zEviXtNmq2MqOlxgaasLLUtBS/DjRvQVlHOjs2+M+5JHcXtR7dcCGSDw3x3YtNgo9r2D5VmZLo=)</coreClient.basicAuth.password>
 
         <!-- internal dependency versions -->
-        <girders.version>RELEASE-1.179</girders.version>
+        <girders.version>RELEASE-1.181</girders.version>
 
         <!-- external dependency versions -->
         <embedded-database-spring-test.version>2.4.0</embedded-database-spring-test.version>
         <embedded-postgres.version>2.0.6</embedded-postgres.version>
-        <testcontainers.version>1.18.3</testcontainers.version>
         <awaitility.version>4.2.0</awaitility.version>
         <embedded-postgres-binary.version>15.5.1</embedded-postgres-binary.version>
         <build-helper-maven-plugin.version>3.5.0</build-helper-maven-plugin.version>
@@ -137,22 +136,8 @@
         </dependency>
 
         <dependency>
-            <groupId>io.zonky.test</groupId>
-            <artifactId>embedded-database-spring-test</artifactId>
-            <version>${embedded-database-spring-test.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>io.zonky.test</groupId>
-            <artifactId>embedded-postgres</artifactId>
-            <version>${embedded-postgres.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>testcontainers</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-testcontainers</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -163,6 +148,20 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>localstack</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.zonky.test</groupId>
+            <artifactId>embedded-database-spring-test</artifactId>
+            <version>${embedded-database-spring-test.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.zonky.test</groupId>
+            <artifactId>embedded-postgres</artifactId>
+            <version>${embedded-postgres.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -180,13 +179,6 @@
                 <groupId>io.zonky.test.postgres</groupId>
                 <artifactId>embedded-postgres-binaries-bom</artifactId>
                 <version>${embedded-postgres-binary.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.testcontainers</groupId>
-                <artifactId>testcontainers-bom</artifactId>
-                <version>${testcontainers.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
