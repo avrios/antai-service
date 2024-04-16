@@ -80,19 +80,19 @@ import static org.mockito.Mockito.when;
  */
 class BlueprintMessagingIntegrationTest {
     @Container
-    private static final LocalStackContainer localstack =
-            new LocalStackContainer(DockerImageName.parse("localstack/localstack:1.3.1"))
-                    .withServices(LocalStackContainer.Service.SQS, LocalStackContainer.Service.SNS)
-                    .withReuse(true);
+    private static final LocalStackContainer localstack = new LocalStackContainer(DockerImageName.parse("localstack/localstack:3.2.0"))
+            .withServices(LocalStackContainer.Service.SQS, LocalStackContainer.Service.SNS)
+            // Our integration tests fail in AWS CodeBuild without AWS_ENDPOINT_URL pointing to localhost. `awslocal` cannot find
+            // our localstack instance (it points to the docker gateway url instead). Setting AWS_ENDPOINT_URL makes sure all "awslocal"
+            // calls have the correct endpoint-url set. Documentation of the parameter:
+            // https://docs.localstack.cloud/user-guide/integrations/aws-cli/#configuration
+            .withEnv("AWS_ENDPOINT_URL", "http://localhost:4566")
+            .withReuse(true);
 
     public static final String INTEGRATION_TEST_STAGE = "integration-test";
     public static final String STAGE_UNAWARE_TOPIC_NAME = "blueprint-events";
     public static final String QUEUE_NAME = INTEGRATION_TEST_STAGE + "-" + STAGE_UNAWARE_TOPIC_NAME;
     public static final String TOPIC_NAME = QUEUE_NAME;
-
-    static {
-        System.setProperty("spring.profiles.active", "dev");
-    }
 
     @MockBean
     private BugsnagConfiguration bugsnagConfiguration;
@@ -106,12 +106,6 @@ class BlueprintMessagingIntegrationTest {
     private SnsClient snsClient;
     @Inject
     private MessagingService messagingService;
-
-    private static synchronized void startLocalstackLazy() {
-        if (!localstack.isCreated()) {
-            localstack.start();
-        }
-    }
 
     private static void execInContainerOrThrow(String... commands) throws Exception {
         org.testcontainers.containers.Container.ExecResult execResult = localstack.execInContainer(commands);
@@ -129,11 +123,11 @@ class BlueprintMessagingIntegrationTest {
     @Test
     void apiCallSendsMessage() throws Exception {
         // given
-        String queueUrl = sqsAsyncClient.getQueueUrl(GetQueueUrlRequest.builder().queueName(QUEUE_NAME).build()).get().queueUrl();
+        String queueUrl = getQueueUrl(QUEUE_NAME);
         snsClient.subscribe(SubscribeRequest.builder()
                 .topicArn("arn:aws:sns:" + localstack.getRegion() + ":000000000000:" + TOPIC_NAME)
                 .protocol("sqs")
-                .endpoint(queueUrl)
+                .endpoint(getQueueArn(QUEUE_NAME))
                 .build());
 
         // when
@@ -155,6 +149,15 @@ class BlueprintMessagingIntegrationTest {
         return Integer.parseInt(getQueueAttributesResponse.attributes().get(attribute));
     }
 
+    protected String getQueueUrl(String queueName) throws Exception {
+        GetQueueUrlRequest queueUrlRequest = GetQueueUrlRequest.builder().queueName(queueName).build();
+        return sqsAsyncClient.getQueueUrl(queueUrlRequest).get().queueUrl();
+    }
+
+    protected String getQueueArn(String queueName) {
+        return "arn:aws:sqs:%s:000000000000:%s".formatted(localstack.getRegion(), queueName);
+    }
+
     @TestConfiguration
     static class LocalstackTestConfiguration {
         @MockBean
@@ -171,8 +174,6 @@ class BlueprintMessagingIntegrationTest {
         @Bean
         @Primary
         SnsClient overriddenSnsClient(AwsCredentialsProvider awsCredentialsProvider) {
-            startLocalstackLazy();
-
             return SnsClient.builder()
                     .credentialsProvider(awsCredentialsProvider)
                     .region(Region.of(localstack.getRegion()))
@@ -183,8 +184,6 @@ class BlueprintMessagingIntegrationTest {
         @Bean
         @Primary
         SqsAsyncClient overriddenSqsAsyncClient(AwsCredentialsProvider awsCredentialsProvider) {
-            startLocalstackLazy();
-
             return SqsAsyncClient.builder()
                     .credentialsProvider(awsCredentialsProvider)
                     .region(Region.of(localstack.getRegion()))
@@ -194,8 +193,6 @@ class BlueprintMessagingIntegrationTest {
 
         @PostConstruct
         void prepareContext() throws Exception {
-            startLocalstackLazy();
-
             execInContainerOrThrow("awslocal", "sqs", "create-queue", "--queue-name", QUEUE_NAME);
             execInContainerOrThrow("awslocal", "sns", "create-topic", "--name", TOPIC_NAME);
 
