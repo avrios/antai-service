@@ -1,0 +1,19 @@
+{
+  "root": true,
+  "plugins": ["@typescript-eslint", "prettier"],
+  "env": {
+    "es2020": true,
+    "node": true
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "prettier"
+  ],
+  "rules": {
+    "prettier/prettier": "error",
+    "no-duplicate-imports": ["error"],
+    "max-len": ["error", { "code": 140 }],
+    "function-paren-newline": ["error", "consistent"]
+  }
+}

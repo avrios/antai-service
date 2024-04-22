@@ -1,0 +1,14 @@
+{
+  "plugins": ["prettier-plugin-organize-imports"],
+  "singleQuote": true,
+  "bracketSpacing": true,
+  "arrowParens": "avoid",
+  "overrides": [
+    {
+      "files": ["*.ts", "*.js"],
+      "options": {
+        "semi": true
+      }
+    }
+  ]
+}
