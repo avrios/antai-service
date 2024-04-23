@@ -16,6 +16,8 @@
         <!--suppress UnresolvedMavenProperty: system env variable-->
         <jwtIssuer.userpools>${COGNITO_USER_POOL_ID_DEFAULT}</jwtIssuer.userpools>
         <jwtIssuer.path>https://cognito-idp.%s.amazonaws.com/</jwtIssuer.path>
+        <jwtIssuer.fusionauth.issueruri>https://fleetgroup.dev</jwtIssuer.fusionauth.issueruri>
+        <jwtIssuer.fusionauth.jwkseturi>http://localhost:9011/.well-known/jwks.json</jwtIssuer.fusionauth.jwkseturi>
 
         <bugsnag.active>false</bugsnag.active>
         <bugsnag.send_uncaught_exceptions>false</bugsnag.send_uncaught_exceptions>
@@ -34,7 +36,7 @@
         <coreClient.basicAuth.password>ENC(BKXchr9SpcBnkH6oS2vhBnZmN3kcfQR+0zEviXtNmq2MqOlxgaasLLUtBS/DjRvQVlHOjs2+M+5JHcXtR7dcCGSDw3x3YtNgo9r2D5VmZLo=)</coreClient.basicAuth.password>
 
         <!-- internal dependency versions -->
-        <girders.version>RELEASE-1.192</girders.version>
+        <girders.version>RELEASE-1.194</girders.version>
 
         <!-- external dependency versions -->
         <embedded-database-spring-test.version>2.5.0</embedded-database-spring-test.version>
