@@ -8,6 +8,7 @@ import com.avrios.girders.awsmessaging.sns.MessagingService;
 import com.avrios.girders.awsmessagingtypes.BaseMessage;
 import com.avrios.girders.common.Stage;
 import com.avrios.girders.common.StageHolder;
+import com.avrios.girders.monitoring.datadog.MicrometerConfiguration;
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
@@ -98,6 +99,8 @@ class BlueprintMessagingIntegrationTest {
     private BugsnagConfiguration bugsnagConfiguration;
     @MockBean
     private WebSecurityConfiguration webSecurityConfiguration;
+    @MockBean
+    private MicrometerConfiguration micrometerConfiguration;
     @MockBean
     private StageHolder stageHolder;
     @Inject

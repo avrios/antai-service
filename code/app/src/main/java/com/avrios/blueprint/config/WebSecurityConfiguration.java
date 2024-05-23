@@ -19,14 +19,14 @@ public class WebSecurityConfiguration {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .securityContext(securityContext -> securityContext.requireExplicitSave(true))
-                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
-                .apply(avrConfigureJwtResourceServer()).and()
-                .csrf().disable()
+            .securityContext(securityContext -> securityContext.requireExplicitSave(true))
+            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
+            .apply(avrConfigureJwtResourceServer()).and()
+            .csrf().disable()
 
-                .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/healthCheck/**").permitAll()
-                        .anyRequest().authenticated());
+            .authorizeHttpRequests(authorize -> authorize
+                .requestMatchers("/healthCheck/**").permitAll()
+                .anyRequest().authenticated());
 
         return http.build();
     }
