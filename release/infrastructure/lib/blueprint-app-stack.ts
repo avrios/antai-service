@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import * as cdk from 'aws-cdk-lib';
 import { aws_ec2 as ec2, aws_ecr as ecr, aws_iam as iam, aws_logs as logs, aws_rds as rds } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
@@ -17,7 +15,7 @@ import {
     AvrStage,
     AvrStageConfig,
     AvrTopic,
-} from 'avr-cdk-utils';
+} from '@avrios/avr-cdk-utils';
 
 interface BlueprintAppStackProps extends AvrAppStackProps {
     readonly repository: ecr.Repository;

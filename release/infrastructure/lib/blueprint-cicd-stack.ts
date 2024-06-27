@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import { aws_chatbot as chatbot, aws_ecs as ecs } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
@@ -16,7 +14,7 @@ import {
     AvrEcrRepository,
     AvrStage,
     FleetBuildNotifications,
-} from 'avr-cdk-utils';
+} from '@avrios/avr-cdk-utils';
 
 export class BlueprintCiCdStack extends AvrCiCdStack {
     private readonly ecrRepository: AvrEcrRepository;
