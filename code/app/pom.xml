@@ -37,14 +37,14 @@
         <coreClient.basicAuth.password>ENC(BKXchr9SpcBnkH6oS2vhBnZmN3kcfQR+0zEviXtNmq2MqOlxgaasLLUtBS/DjRvQVlHOjs2+M+5JHcXtR7dcCGSDw3x3YtNgo9r2D5VmZLo=)</coreClient.basicAuth.password>
 
         <!-- internal dependency versions -->
-        <girders.version>RELEASE-1.208</girders.version>
+        <girders.version>RELEASE-1.209</girders.version>
 
         <!-- external dependency versions -->
-        <embedded-database-spring-test.version>2.5.0</embedded-database-spring-test.version>
+        <embedded-database-spring-test.version>2.5.1</embedded-database-spring-test.version>
         <embedded-postgres.version>2.0.7</embedded-postgres.version>
-        <awaitility.version>4.2.1</awaitility.version>
-        <embedded-postgres-binary.version>15.5.1</embedded-postgres-binary.version>
-        <build-helper-maven-plugin.version>3.5.0</build-helper-maven-plugin.version>
+        <awaitility.version>4.2.2</awaitility.version>
+        <embedded-postgres-binary.version>16.4.0</embedded-postgres-binary.version>
+        <build-helper-maven-plugin.version>3.6.0</build-helper-maven-plugin.version>
         <flexy-pool.decorator.version>1.9.1</flexy-pool.decorator.version>
     </properties>
 
