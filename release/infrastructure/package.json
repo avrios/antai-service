@@ -23,7 +23,7 @@
     "typescript": "5.4.5"
   },
   "dependencies": {
-    "@avrios/avr-cdk-utils": "9.0.0",
+    "@avrios/avr-cdk-utils": "9.3.5",
     "constructs": "10.3.0"
   }
 }

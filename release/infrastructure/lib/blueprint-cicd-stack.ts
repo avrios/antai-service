@@ -7,6 +7,7 @@ import {
     AvrCiCdStack,
     AvrCiCdStackProps,
     AvrCodePipeline,
+    AvrCodePipelineDeployToTest,
     AvrCodePipelineFeature,
     AvrCodePipelineHotfix,
     AvrCodePipelineMain,
@@ -32,9 +33,10 @@ export class BlueprintCiCdStack extends AvrCiCdStack {
         this.createApplicationStack(scope, AvrStage.PROD);
 
         const pipelineProps = this.getPipelineProps();
-        new AvrCodePipelineFeature(this, pipelineProps);
+        new AvrCodePipelineFeature(this, pipelineProps, true);
         new AvrCodePipelineHotfix(this, pipelineProps);
-        new AvrCodePipelineMain(this, pipelineProps);
+        new AvrCodePipelineMain(this, pipelineProps, false);
+        new AvrCodePipelineDeployToTest(this, pipelineProps);
     }
 
     private createApplicationStack(scope: Construct, stage: AvrStage): void {

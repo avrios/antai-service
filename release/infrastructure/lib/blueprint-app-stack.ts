@@ -5,7 +5,6 @@ import { Construct } from 'constructs';
 import {
     AvrAppStack,
     AvrAppStackProps,
-    AvrFargateContainerProps,
     AvrFargateService,
     AvrJob,
     AvrJobConfig,
@@ -15,11 +14,12 @@ import {
     AvrStage,
     AvrStageConfig,
     AvrTopic,
+    FleetFargateContainerProps,
 } from '@avrios/avr-cdk-utils';
 
 interface BlueprintAppStackProps extends AvrAppStackProps {
     readonly repository: ecr.Repository;
-    readonly taskContainerProps?: AvrFargateContainerProps;
+    readonly taskContainerProps?: FleetFargateContainerProps;
 }
 
 export class BlueprintAppStack extends AvrAppStack {
@@ -69,7 +69,7 @@ export class BlueprintAppStack extends AvrAppStack {
 export class BlueprintDevStack extends cdk.Stack {
     constructor(scope: Construct, serviceShortName: string) {
         super(scope, `${AvrStage.DEV.identifier}-${serviceShortName}-resources`, {
-            env: AvrStage.DEV.env,
+            env: AvrStage.DEV.account.env,
         });
 
         new BlueprintResources(this, AvrStage.DEV);

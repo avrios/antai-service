@@ -20,12 +20,14 @@ phases:
       - MAJOR_VERSION=1
       - RELEASE_VERSION=${RELEASE_VERSION_PREFIX}${MAJOR_VERSION}.${CODEBUILD_BUILD_NUMBER}${RELEASE_VERSION_POSTFIX}
       - echo ${RELEASE_VERSION}
+      - GIT_BRANCH=${GIT_BRANCH:-$(get-git-branch)}
+      - echo "GIT_BRANCH=${GIT_BRANCH}"
 
   build:
     commands:
       - mvn versions:set versions:update-child-modules -DnewVersion=${RELEASE_VERSION} -s .build/codeartifact.xml
       - HOME=/home/codebuild-user mvn clean deploy -Ddocker.tags.latest=${DOCKER_TAGS_LATEST} -s .build/codeartifact.xml
-      - printf "{\"imageTag\":\"${RELEASE_VERSION}\"}" > imagedefinitions.json
+      - printf "{\"imageTag\":\"${RELEASE_VERSION}\",\"branchName\":\"${GIT_BRANCH}\"}" > imagedefinitions.json
 
   post_build:
     commands:
