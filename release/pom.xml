@@ -25,7 +25,7 @@
         <container.healthcheck.path>/blueprint/healthCheck</container.healthcheck.path>
 
         <!-- plugin versions -->
-        <docker-maven-plugin.version>0.45.0</docker-maven-plugin.version>
+        <docker-maven-plugin.version>0.46.0</docker-maven-plugin.version>
     </properties>
 
     <modules>

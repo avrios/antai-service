@@ -67,7 +67,7 @@ export class BlueprintCiCdStack extends AvrCiCdStack {
             serviceImages: this.serviceImages,
             serviceShortName: this.props.serviceShortName,
             gitRepositoryName: this.props.gitRepositoryName,
-            codeBuildImage: AvrCodePipeline.getEcrImage(this, 'code-build-image', '2'),
+            codeBuildImage: AvrCodePipeline.getEcrImage(this, 'code-build-image', '3'),
             buildNotifications: notificationSettings,
         };
     }

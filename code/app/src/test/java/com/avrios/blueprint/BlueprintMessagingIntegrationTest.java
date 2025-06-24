@@ -10,6 +10,7 @@ import com.avrios.girders.common.Stage;
 import com.avrios.girders.common.StageHolder;
 import com.avrios.girders.monitoring.datadog.MicrometerConfiguration;
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
+import jakarta.annotation.PostConstruct;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import lombok.experimental.SuperBuilder;
@@ -40,7 +41,6 @@ import software.amazon.awssdk.services.sqs.model.GetQueueAttributesResponse;
 import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
 import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
 
-import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import java.time.Duration;
 import java.util.concurrent.ExecutionException;
