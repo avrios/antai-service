@@ -58,7 +58,7 @@
                                 <goal>exec</goal>
                             </goals>
                             <configuration>
-                                <commandlineArgs>install</commandlineArgs>
+                                <commandlineArgs>ci</commandlineArgs>
                             </configuration>
                         </execution>
                         <execution>
