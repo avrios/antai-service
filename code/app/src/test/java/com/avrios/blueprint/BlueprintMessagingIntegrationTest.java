@@ -50,6 +50,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.when;
 
+/**
+ * This is a sample test for a setup using testcontainers and localstack to mirror an aws environment.
+ * Testcontainers allows for launching (and control) of docker containers within a test and localstack provides AWS functionality.
+ * In this case we have set up an SQS subscription on the SNS topic
+ * (as we tend to do in our real infrastructure) to check that a notification is added to the topic when a particular method is called.
+ *
+ * This style of test can be used for a variety of aws integration test e.g.
+ *  - testing the reaction to a message on a queue
+ *  - checking messages are queue (as here)
+ *  - checking files are added to s3 (or moved around within s3)
+ *
+ * Multiple AWS services can be launched at once within the localstack image.
+ * Unfortunately all the AWS infrastructure has to be created with command line scripts, the cloudformation cannot be used.
+ */
 @ActiveProfiles("dev")
 @Testcontainers
 @SpringBootTest(
@@ -65,20 +79,6 @@ import static org.mockito.Mockito.when;
 )
 @AutoConfigureEmbeddedDatabase(provider = AutoConfigureEmbeddedDatabase.DatabaseProvider.ZONKY)
 @Import({BlueprintMessagingIntegrationTest.LocalstackTestConfiguration.class, BlueprintServiceApplication.class})
-/**
- * This is a sample test for a setup using testcontainers and localstack to mirror an aws environment.
- * Testcontainers allows for launching (and control) of docker containers within a test and localstack provides AWS functionality.
- * In this case we have set up an SQS subscription on the SNS topic
- * (as we tend to do in our real infrastructure) to check that a notification is added to the topic when a particular method is called.
- *
- * This style of test can be used for a variety of aws integration test e.g.
- *  - testing the reaction to a message on a queue
- *  - checking messages are queue (as here)
- *  - checking files are added to s3 (or moved around within s3)
- *
- * Multiple AWS services can be launched at once within the localstack image.
- * Unfortunately all the AWS infrastructure has to be created with command line scripts, the cloudformation cannot be used.
- */
 class BlueprintMessagingIntegrationTest {
     @Container
     private static final LocalStackContainer localstack = new LocalStackContainer(DockerImageName.parse("localstack/localstack:3.2.0"))
