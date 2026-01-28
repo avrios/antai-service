@@ -21,7 +21,7 @@
         <config-output.dir>${project.build.directory}/config</config-output.dir>
 
         <!-- plugin versions -->
-        <maven-antrun-plugin.version>3.1.0</maven-antrun-plugin.version>
+        <maven-antrun-plugin.version>3.2.0</maven-antrun-plugin.version>
     </properties>
 
     <build>
