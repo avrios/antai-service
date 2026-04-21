@@ -1,7 +1,7 @@
-import { aws_chatbot as chatbot, aws_ecs as ecs } from 'aws-cdk-lib';
+import { aws_ecs as ecs } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
-import { BlueprintAppStack } from './blueprint-app-stack';
+import { AppStack } from './app-stack';
 
 import {
     AvrCiCdStack,
@@ -14,10 +14,9 @@ import {
     AvrEcrCodePipelineProps,
     AvrEcrRepository,
     AvrStage,
-    FleetBuildNotifications,
 } from '@avrios/avr-cdk-utils';
 
-export class BlueprintCiCdStack extends AvrCiCdStack {
+export class CicdStack extends AvrCiCdStack {
     private readonly ecrRepository: AvrEcrRepository;
     private readonly serviceImages: { [key: string]: ecs.TagParameterContainerImage } = {};
 
@@ -40,7 +39,7 @@ export class BlueprintCiCdStack extends AvrCiCdStack {
     }
 
     private createApplicationStack(scope: Construct, stage: AvrStage): void {
-        const appStack = new BlueprintAppStack(scope, {
+        const appStack = new AppStack(scope, {
             stage,
             serviceShortName: this.props.serviceShortName,
             repository: this.ecrRepository.repository,
@@ -55,20 +54,12 @@ export class BlueprintCiCdStack extends AvrCiCdStack {
     }
 
     private getPipelineProps(): AvrEcrCodePipelineProps {
-        const chatbotSlackClient = new chatbot.SlackChannelConfiguration(this, 'slack', {
-            slackChannelConfigurationName: `avrios-blueprint-alerts`,
-            slackWorkspaceId: 'T02NY065N', // vimcar.slack.com
-            slackChannelId: 'C04RSSN74AE', // #avrios-blueprint-alerts
-        });
-
-        const notificationSettings = new FleetBuildNotifications(chatbotSlackClient);
         return {
             ecrRepository: this.ecrRepository.repository,
             serviceImages: this.serviceImages,
             serviceShortName: this.props.serviceShortName,
             gitRepositoryName: this.props.gitRepositoryName,
             codeBuildImage: AvrCodePipeline.getEcrImage(this, 'code-build-image', '3'),
-            buildNotifications: notificationSettings,
         };
     }
 }
