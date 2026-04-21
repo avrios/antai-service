@@ -1,4 +1,4 @@
-package com.avrios.blueprint.config;
+package com.avrios.antai.config;
 
 import com.avrios.girders.security.jwt.AvrEnableJwtResourceServer;
 import org.springframework.beans.factory.annotation.Value;
