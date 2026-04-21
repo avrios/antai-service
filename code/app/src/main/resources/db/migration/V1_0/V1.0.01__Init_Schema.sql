@@ -2,14 +2,14 @@ CREATE SCHEMA IF NOT EXISTS ${schema};
 
 DO
 $$
-    BEGIN
+BEGIN
         IF NOT EXISTS(
                 SELECT
                 FROM pg_catalog.pg_roles -- SELECT list can be empty for this
                 WHERE rolname = '${app-user.user}') THEN
             CREATE USER ${app-user.user} WITH PASSWORD '${app-user.password}' login;
-        END IF;
-    END
+END IF;
+END
 $$;
 
 GRANT USAGE ON SCHEMA ${schema} TO ${app-user.user};

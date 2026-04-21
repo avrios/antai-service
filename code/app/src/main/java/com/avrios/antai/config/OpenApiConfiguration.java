@@ -1,4 +1,4 @@
-package com.avrios.blueprint.config;
+package com.avrios.antai.config;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
