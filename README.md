@@ -1,4 +1,4 @@
-# Avrios Blueprint Service
+# Avrios Antai Service
 
 ## Build and run locally
 ### Building
@@ -48,7 +48,7 @@ In `release/infrastructure`, run `mvn clean install -P<profile>` with any of the
 
 # Deployments
 
-Merges to trunk (`main` Git Branch) trigger a Codepipeline job within the tooling account which deploys to test & staging. A manual step is then required for final deployment to prod. You can find the Codepipeline project [here](https://eu-central-1.console.aws.amazon.com/codesuite/codepipeline/pipelines/blueprint-main/view?region=eu-central-1). This is true for both application code and AWS infrastructure*.
+Merges to trunk (`main` Git Branch) trigger a Codepipeline job within the tooling account which deploys to test & staging. A manual step is then required for final deployment to prod. You can find the Codepipeline project [here](https://eu-central-1.console.aws.amazon.com/codesuite/codepipeline/pipelines/antai-main/view?region=eu-central-1). This is true for both application code and AWS infrastructure*.
 
 *The exception being tooling infrastructure, which must be deployment manually. See `AWS Infrastructure` above.
 
