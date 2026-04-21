@@ -1,5 +1,5 @@
 {
-  "name": "infrastructure-blueprint-service",
+  "name": "infrastructure-antai-service",
   "version": "0.1.0",
   "scripts": {
     "build": "tsc",
@@ -10,20 +10,15 @@
     "lint:fix": "npm run lint -- --fix"
   },
   "devDependencies": {
-    "@types/node": "18.19.17",
-    "@typescript-eslint/eslint-plugin": "7.7.0",
-    "eslint": "8.57.0",
-    "eslint-config-prettier": "9.1.0",
-    "eslint-plugin-prettier": "5.1.3",
-    "prettier": "3.2.5",
-    "prettier-plugin-organize-imports": "3.2.4",
+    "@types/node": "24.5.2",
     "@types/uuid": "9.0.8",
     "aws-cdk": "2.146.0",
+    "prettier": "3.2.5",
     "ts-node": "10.9.2",
     "typescript": "5.4.5"
   },
   "dependencies": {
-    "@avrios/avr-cdk-utils": "9.3.5",
-    "constructs": "10.3.0"
+    "@avrios/avr-cdk-utils": "9.5.2",
+    "constructs": "10.4.2"
   }
 }

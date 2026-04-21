@@ -6,10 +6,10 @@
     <artifactId>config</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>Blueprint Service - Release - Config</name>
+    <name>Antai Service - Release - Config</name>
 
     <parent>
-        <groupId>com.avrios.blueprint</groupId>
+        <groupId>com.avrios.antai</groupId>
         <artifactId>release</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
@@ -41,7 +41,7 @@
                 <configuration>
                     <artifactItems>
                         <artifactItem>
-                            <groupId>com.avrios.blueprint</groupId>
+                            <groupId>com.avrios.antai</groupId>
                             <artifactId>app</artifactId>
                             <classifier>config-template</classifier>
                             <type>properties</type>
