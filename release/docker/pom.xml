@@ -6,10 +6,10 @@
     <artifactId>docker</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>docker-build</packaging>
-    <name>Blueprint Service - Release - Docker</name>
+    <name>Antai Service - Release - Docker</name>
 
     <parent>
-        <groupId>com.avrios.blueprint</groupId>
+        <groupId>com.avrios.antai</groupId>
         <artifactId>release</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
@@ -23,12 +23,12 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.avrios.blueprint</groupId>
+            <groupId>com.avrios.antai</groupId>
             <artifactId>app</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.avrios.blueprint</groupId>
+            <groupId>com.avrios.antai</groupId>
             <artifactId>config</artifactId>
             <version>${project.version}</version>
             <type>zip</type>
@@ -57,7 +57,7 @@
                                         <dependencySets>
                                             <dependencySet>
                                                 <includes>
-                                                    <include>com.avrios.blueprint:app</include>
+                                                    <include>com.avrios.antai:app</include>
                                                 </includes>
                                                 <outputDirectory>.</outputDirectory>
                                                 <outputFileNameMapping>${docker.jar.name}</outputFileNameMapping>
@@ -65,7 +65,7 @@
                                             </dependencySet>
                                             <dependencySet>
                                                 <includes>
-                                                    <include>com.avrios.blueprint:config:zip</include>
+                                                    <include>com.avrios.antai:config:zip</include>
                                                 </includes>
                                                 <unpack>true</unpack>
                                                 <outputDirectory>.</outputDirectory>
@@ -110,8 +110,6 @@
                                         -XX:+HeapDumpOnOutOfMemoryError
                                         -XX:+UseThreadPriorities
                                     </JDK_JAVA_OPTIONS>
-                                    <!--suppress UnresolvedMavenProperty -->
-                                    <COGNITO_USER_POOL_ID_DEFAULT>${COGNITO_USER_POOL_ID_DEFAULT}</COGNITO_USER_POOL_ID_DEFAULT>
                                 </env>
                                 <volumes>
                                     <bind>

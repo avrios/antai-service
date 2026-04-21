@@ -1,4 +1,4 @@
-package com.avrios.blueprint.config;
+package com.avrios.antai.config;
 
 import com.avrios.girders.awsmessaging.config.sns.AvrEnableSns;
 import com.avrios.girders.awsmessaging.config.sqs.AvrEnableSqs;
