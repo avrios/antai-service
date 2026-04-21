@@ -4,13 +4,13 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.avrios.blueprint</groupId>
+        <groupId>com.avrios.antai</groupId>
         <artifactId>code</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>app</artifactId>
-    <name>Blueprint Service - Code - App</name>
+    <name>Antai Service - Code - App</name>
 
     <properties>
         <!--suppress UnresolvedMavenProperty: system env variable-->
@@ -26,10 +26,10 @@
         <!--suppress UnresolvedMavenProperty -->
         <aws.avrios.stage>dev-${DEV_LOCAL_ENV:common}</aws.avrios.stage>
 
-        <spring.flyway.placeholders.schema>blueprint</spring.flyway.placeholders.schema>
+        <spring.flyway.placeholders.schema>antai</spring.flyway.placeholders.schema>
         <spring.datasource.url>jdbc:postgresql://localhost:5432/avrios?prepareThreshold=3&amp;currentSchema=${spring.flyway.placeholders.schema}</spring.datasource.url>
-        <spring.datasource.username>blueprint</spring.datasource.username>
-        <spring.datasource.password>blueprint</spring.datasource.password>
+        <spring.datasource.username>antai</spring.datasource.username>
+        <spring.datasource.password>antai</spring.datasource.password>
         <spring.flyway.password>flyway</spring.flyway.password>
         <springdoc.swagger-ui.enabled>true</springdoc.swagger-ui.enabled>
 
@@ -247,7 +247,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>${exec-maven-plugin.version}</version>
                 <configuration>
-                    <mainClass>com.avrios.blueprint.BlueprintServiceApplication</mainClass>
+                    <mainClass>com.avrios.antai.AntaiServiceApplication</mainClass>
                     <commandlineArgs>-p ${exec.config.port} -server -Xms750m -Xmx750m -XX:+HeapDumpOnOutOfMemoryError
                     </commandlineArgs>
                     <systemProperties>

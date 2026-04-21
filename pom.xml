@@ -8,15 +8,15 @@
         <version>RELEASE-1.256</version>
     </parent>
 
-    <groupId>com.avrios.blueprint</groupId>
+    <groupId>com.avrios.antai</groupId>
     <artifactId>root</artifactId>
     <version>1.0.0-SNAPSHOT</version>
-    <name>Blueprint Service</name>
+    <name>Antai Service</name>
 
     <packaging>pom</packaging>
 
     <inceptionYear>2021</inceptionYear>
-    <description>Avrios Blueprint Service</description>
+    <description>Avrios Antai Service</description>
 
     <organization>
         <name>Avrios International AG</name>
@@ -31,12 +31,12 @@
 
     <properties>
         <!-- the service short name, used throughout the project -->
-        <avr.service.name.short>blueprint</avr.service.name.short>
+        <avr.service.name.short>antai</avr.service.name.short>
         <avr.service.name>${avr.service.name.short}-service</avr.service.name>
         <avr.repo.name>${avr.service.name}</avr.repo.name>
 
         <!-- the root package of the new service -->
-        <avr.service.rootpackage>com.avrios.blueprint</avr.service.rootpackage>
+        <avr.service.rootpackage>com.avrios.antai</avr.service.rootpackage>
 
         <!-- run configuration -->
         <exec.config.port>9999</exec.config.port>
@@ -78,19 +78,19 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>com.avrios.blueprint</groupId>
+                <groupId>com.avrios.antai</groupId>
                 <artifactId>code</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.avrios.blueprint</groupId>
+                <groupId>com.avrios.antai</groupId>
                 <artifactId>code</artifactId>
                 <classifier>config</classifier>
                 <type>properties</type>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.avrios.blueprint</groupId>
+                <groupId>com.avrios.antai</groupId>
                 <artifactId>config</artifactId>
                 <version>${project.version}</version>
                 <type>zip</type>

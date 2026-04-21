@@ -1,4 +1,4 @@
-package com.avrios.blueprint.config;
+package com.avrios.antai.config;
 
 import com.avrios.girders.common.Stage;
 import com.avrios.girders.common.StageHolder;
@@ -26,6 +26,6 @@ public class BugsnagConfiguration {
     @Bean
     public BugsnagClient bugsnagClient(StageHolder stageHolder) {
         return new BugsnagClient(stageHolder.getCurrentStage(), bugsnagApiKey, bugsnagActive,
-                sendUncaughtExceptions, "com.avrios.blueprint");
+                sendUncaughtExceptions, "com.avrios.antai");
     }
 }
