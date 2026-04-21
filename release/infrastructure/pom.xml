@@ -6,10 +6,10 @@
     <artifactId>infrastructure</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>Blueprint Service - Release - Infrastructure</name>
+    <name>Antai Service - Release - Infrastructure</name>
 
     <parent>
-        <groupId>com.avrios.blueprint</groupId>
+        <groupId>com.avrios.antai</groupId>
         <artifactId>release</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>

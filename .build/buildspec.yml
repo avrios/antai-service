@@ -31,9 +31,9 @@ phases:
 
   post_build:
     commands:
-      - prepare-maven-cache -u codebuild-user -p com/avrios/blueprint
+      - prepare-maven-cache -u codebuild-user -p com/avrios/antai
       # Tag git on RELEASE-* versions
-      - if [[ $RELEASE_VERSION_PREFIX == RELEASE* ]]; then publish-git-tag --tag ${RELEASE_VERSION} --source-commit ${CODEBUILD_RESOLVED_SOURCE_VERSION} --repository blueprint-service --gh-token ${GITHUB_TOKEN}; fi
+      - if [[ $RELEASE_VERSION_PREFIX == RELEASE* ]]; then publish-git-tag --tag ${RELEASE_VERSION} --source-commit ${CODEBUILD_RESOLVED_SOURCE_VERSION} --repository antai-service --gh-token ${GITHUB_TOKEN}; fi
 
 artifacts:
   files:
