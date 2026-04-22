@@ -33,7 +33,6 @@ export class AppStack extends AvrAppStack {
             repository: this.props.repository,
             taskContainerProps: this.props.taskContainerProps,
             addApiGatewayOptionsCors: false,
-            taskHealthCheckGracePeriod: 60 * 20, // 20 mins
         });
 
         new AvrRdsInstance(this, {
@@ -46,7 +45,7 @@ export class AppStack extends AvrAppStack {
             engine: rds.DatabaseInstanceEngine.postgres({
                 version: rds.PostgresEngineVersion.VER_17_6,
             }),
-            backupRetention: AvrStageConfig.each(cdk.Duration.days(0), cdk.Duration.days(0), cdk.Duration.days(0), cdk.Duration.days(0)),
+            backupRetention: AvrStageConfig.each(cdk.Duration.days(0), cdk.Duration.days(5), cdk.Duration.days(0), cdk.Duration.days(0)),
             cloudwatchLogsRetention: AvrStageConfig.all(logs.RetentionDays.ONE_WEEK),
             enhancedMonitoringInterval: AvrStageConfig.allButProd(undefined, 60),
 
