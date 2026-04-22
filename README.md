@@ -60,9 +60,6 @@ This project has sample tests for 2 types of integration tests:
 
 These are to provide an idea of what it might make sense to cover with integration tests and how you might go about this.
 
-# Troubleshooting
-
-
 # Contributing
 
 Anyone may contribute to the project. Propose your change via PR ensuring:
