@@ -33,6 +33,7 @@ export class AppStack extends AvrAppStack {
             repository: this.props.repository,
             taskContainerProps: this.props.taskContainerProps,
             addApiGatewayOptionsCors: false,
+            taskHealthCheckGracePeriod: 60 * 20, // 20 mins
         });
 
         new AvrRdsInstance(this, {
