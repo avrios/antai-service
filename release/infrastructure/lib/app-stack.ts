@@ -5,7 +5,7 @@ import { Construct } from 'constructs';
 import {
     AvrAppStack,
     AvrAppStackProps,
-    AvrFargateService,
+    // AvrFargateService,
     AvrRdsInstance,
     AvrServiceDlqMonitor,
     AvrStage,
@@ -20,21 +20,20 @@ interface AppStackProps extends AvrAppStackProps {
 
 export class AppStack extends AvrAppStack {
     protected readonly props: AppStackProps;
-    public readonly fargateService: AvrFargateService;
+    // public readonly fargateService: AvrFargateService;
 
     constructor(scope: Construct, props: AppStackProps) {
         super(scope, props);
 
         this.props = props;
 
-        this.fargateService = new AvrFargateService(this, {
-            serviceShortName: this.props.serviceShortName,
-            stage: this.props.stage,
-            repository: this.props.repository,
-            taskContainerProps: this.props.taskContainerProps,
-            addApiGatewayOptionsCors: false,
-            taskHealthCheckGracePeriod: 60 * 20, // 20 mins
-        });
+        // this.fargateService = new AvrFargateService(this, {
+        //     serviceShortName: this.props.serviceShortName,
+        //     stage: this.props.stage,
+        //     repository: this.props.repository,
+        //     taskContainerProps: this.props.taskContainerProps,
+        //     addApiGatewayOptionsCors: false,
+        // });
 
         new AvrRdsInstance(this, {
             stage: this.props.stage,
@@ -46,11 +45,11 @@ export class AppStack extends AvrAppStack {
             engine: rds.DatabaseInstanceEngine.postgres({
                 version: rds.PostgresEngineVersion.VER_17_6,
             }),
-            backupRetention: AvrStageConfig.each(cdk.Duration.days(0), cdk.Duration.days(0), cdk.Duration.days(0), cdk.Duration.days(0)),
+            backupRetention: AvrStageConfig.each(cdk.Duration.days(0), cdk.Duration.days(5), cdk.Duration.days(0), cdk.Duration.days(5)),
             cloudwatchLogsRetention: AvrStageConfig.all(logs.RetentionDays.ONE_WEEK),
             enhancedMonitoringInterval: AvrStageConfig.allButProd(undefined, 60),
 
-            dbSecurityGroupsIngressSources: [this.fargateService.serviceSecurityGroup],
+            // dbSecurityGroupsIngressSources: [this.fargateService.serviceSecurityGroup],
         });
 
         new AvrServiceDlqMonitor(this, {
