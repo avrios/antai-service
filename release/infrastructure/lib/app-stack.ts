@@ -35,7 +35,7 @@ export class AppStack extends AvrAppStack {
             addApiGatewayOptionsCors: false,
         });
 
-        new AvrRdsInstance(this, {
+        const rdsInstance = new AvrRdsInstance(this, {
             stage: this.props.stage,
             serviceShortName: this.props.serviceShortName,
             allocatedStorage: AvrStageConfig.all(100),
@@ -45,12 +45,13 @@ export class AppStack extends AvrAppStack {
             engine: rds.DatabaseInstanceEngine.postgres({
                 version: rds.PostgresEngineVersion.VER_17_6,
             }),
-            backupRetention: AvrStageConfig.each(cdk.Duration.days(0), cdk.Duration.days(5), cdk.Duration.days(0), cdk.Duration.days(0)),
+            backupRetention: AvrStageConfig.each(cdk.Duration.days(0), cdk.Duration.days(5), cdk.Duration.days(0), cdk.Duration.days(5)),
             cloudwatchLogsRetention: AvrStageConfig.all(logs.RetentionDays.ONE_WEEK),
             enhancedMonitoringInterval: AvrStageConfig.allButProd(undefined, 60),
-
             dbSecurityGroupsIngressSources: [this.fargateService.serviceSecurityGroup],
         });
+
+        this.fargateService.node.addDependency(rdsInstance);
 
         new AvrServiceDlqMonitor(this, {
             stage: this.props.stage,
