@@ -48,10 +48,17 @@ export class AppStack extends AvrAppStack {
             backupRetention: AvrStageConfig.each(cdk.Duration.days(0), cdk.Duration.days(5), cdk.Duration.days(0), cdk.Duration.days(5)),
             cloudwatchLogsRetention: AvrStageConfig.all(logs.RetentionDays.ONE_WEEK),
             enhancedMonitoringInterval: AvrStageConfig.allButProd(undefined, 60),
-            dbSecurityGroupsIngressSources: [this.fargateService.serviceSecurityGroup],
         });
 
-        this.fargateService.node.addDependency(rdsInstance);
+        // Ensure Fargate is created before RDS deployment starts
+        this.fargateService.node.addDependency();
+
+        // Add ingress rule to allow Fargate to connect to RDS
+        rdsInstance.dbSecurityGroup.addIngressRule(
+            ec2.Peer.securityGroupId(this.fargateService.serviceSecurityGroup.securityGroupId),
+            ec2.Port.tcp(5432),
+            `Allow ${this.fargateService.serviceSecurityGroup.securityGroupId}`,
+        );
 
         new AvrServiceDlqMonitor(this, {
             stage: this.props.stage,
